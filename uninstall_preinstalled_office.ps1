@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.1.2
+        Version : 1.2
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.1.2'
+$ScriptVersion = '1.2'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -76,6 +76,14 @@ $Strings = @{
         ScanOffice    = 'Office / OneNote'
         ScanCopilot   = 'Copilot (this takes a few seconds)'
         ScanOneDrive  = 'OneDrive'
+        MenuPick      = '[P] Choose which Office items'
+        PickHeader    = 'Which Office / OneNote items may be removed?'
+        PickHint      = 'Untick a language to keep it installed.'
+        PickAll       = '[A] Tick all'
+        PickNone      = '[N] Tick none'
+        PickBack      = '[0] Back'
+        SelCount      = '({0} ticked)'
+        NoneTicked    = 'No Office items are ticked.'
     }
 
     NL = @{
@@ -133,6 +141,14 @@ $Strings = @{
         ScanOffice    = 'Office / OneNote'
         ScanCopilot   = 'Copilot (dit duurt enkele seconden)'
         ScanOneDrive  = 'OneDrive'
+        MenuPick      = '[P] Kies welke Office-items'
+        PickHeader    = 'Welke Office / OneNote items mogen weg?'
+        PickHint      = 'Vink een taal uit om die te behouden.'
+        PickAll       = '[A] Alles aanvinken'
+        PickNone      = '[N] Alles uitvinken'
+        PickBack      = '[0] Terug'
+        SelCount      = '({0} aangevinkt)'
+        NoneTicked    = 'Er zijn geen Office-items aangevinkt.'
     }
 
     FR = @{
@@ -190,6 +206,14 @@ $Strings = @{
         ScanOffice    = 'Office / OneNote'
         ScanCopilot   = 'Copilot (quelques secondes)'
         ScanOneDrive  = 'OneDrive'
+        MenuPick      = '[P] Choisir les elements Office'
+        PickHeader    = 'Quels elements Office / OneNote peuvent etre supprimes ?'
+        PickHint      = 'Decochez une langue pour la conserver.'
+        PickAll       = '[A] Tout cocher'
+        PickNone      = '[N] Tout decocher'
+        PickBack      = '[0] Retour'
+        SelCount      = '({0} coche(s))'
+        NoneTicked    = 'Aucun element Office n est coche.'
     }
 }
 
@@ -239,6 +263,12 @@ function Invoke-Scan {
 
     Write-Host "    - $($T.ScanOffice)" -NoNewline -ForegroundColor DarkGray
     $Script:Office = @(Get-OfficeTargets)
+
+    # Every detected Office item is ticked by default; the picker lets you
+    # untick individual language SKUs you want to keep.
+    $Script:OfficePick = @()
+    foreach ($o in $Script:Office) { $Script:OfficePick += $true }
+
     Write-Host '  ok' -ForegroundColor DarkGray
 
     Write-Host "    - $($T.ScanCopilot)" -NoNewline -ForegroundColor DarkGray
@@ -504,9 +534,65 @@ function Select-Language {
     }
 }
 
+function Get-OfficePicked {
+    $Picked = @()
+    for ($i = 0; $i -lt $Script:Office.Count; $i++) {
+        if ($Script:OfficePick[$i]) { $Picked += $Script:Office[$i] }
+    }
+    $Picked
+}
+
+function Select-OfficeItems {
+    do {
+        Show-Banner
+        Write-Host "  $($T.PickHeader)" -ForegroundColor White
+        Write-Host "  $($T.PickHint)" -ForegroundColor DarkGray
+        Write-Host ''
+
+        for ($i = 0; $i -lt $Script:Office.Count; $i++) {
+            $Box    = if ($Script:OfficePick[$i]) { '[x]' } else { '[ ]' }
+            $Colour = if ($Script:OfficePick[$i]) { 'Green' } else { 'DarkGray' }
+            Write-Host ('   [{0}]  {1}  {2}' -f ($i + 1), $Box, $Script:Office[$i].DisplayName) `
+                -ForegroundColor $Colour
+        }
+
+        Write-Host ''
+        Write-Host "  $($T.PickAll)"  -ForegroundColor White
+        Write-Host "  $($T.PickNone)" -ForegroundColor White
+        Write-Host "  $($T.PickBack)" -ForegroundColor White
+        Write-Host ''
+
+        $Pick = (Read-Host $T.Choice).Trim().ToUpper()
+
+        if ($Pick -eq 'A') {
+            for ($i = 0; $i -lt $Script:OfficePick.Count; $i++) { $Script:OfficePick[$i] = $true }
+        }
+        elseif ($Pick -eq 'N') {
+            for ($i = 0; $i -lt $Script:OfficePick.Count; $i++) { $Script:OfficePick[$i] = $false }
+        }
+        elseif ($Pick -match '^\d+$') {
+            $Idx = [int]$Pick - 1
+            if ($Idx -ge 0 -and $Idx -lt $Script:OfficePick.Count) {
+                $Script:OfficePick[$Idx] = -not $Script:OfficePick[$Idx]
+            }
+        }
+    } while ($Pick -ne '0')
+}
+
 function Get-Detail {
     param($Items)
     if ($Items.Count -gt 0) { $T.FoundCount -f $Items.Count } else { $T.NotFound }
+}
+
+function Get-OfficeDetail {
+    if ($Script:Office.Count -eq 0) { return $T.NotFound }
+
+    $Ticked = @(Get-OfficePicked).Count
+    $Text   = $T.FoundCount -f $Script:Office.Count
+    if ($Ticked -ne $Script:Office.Count) {
+        $Text = "$Text  " + ($T.SelCount -f $Ticked)
+    }
+    $Text
 }
 
 # ------------------------------------------------------------------- Main ---
@@ -525,7 +611,7 @@ do {
 
     Show-Option -Key '[1]' -Label $T.OptAll -Checked $Sel.All -Available $AllAvailable -Detail ''
     Write-Host '   ---------------------------------------------------------' -ForegroundColor DarkGray
-    Show-Option -Key '[2]' -Label $T.OptOffice   -Checked $Sel.Office   -Available $ItemAvailable -Detail (Get-Detail $Office)
+    Show-Option -Key '[2]' -Label $T.OptOffice   -Checked $Sel.Office   -Available $ItemAvailable -Detail (Get-OfficeDetail)
     Show-Option -Key '[3]' -Label $T.OptCopilot  -Checked $Sel.Copilot  -Available $ItemAvailable -Detail (Get-Detail $Copilot)
     Show-Option -Key '[4]' -Label $T.OptOneDrive -Checked $Sel.OneDrive -Available $ItemAvailable -Detail (Get-Detail $OneDrive)
     Write-Host ''
@@ -535,6 +621,7 @@ do {
     Write-Host ''
 
     Write-Host "  $($T.MenuStart)"  -ForegroundColor White
+    if ($Office.Count -gt 1) { Write-Host "  $($T.MenuPick)" -ForegroundColor White }
     Write-Host "  $($T.MenuRescan)" -ForegroundColor White
     Write-Host "  $($T.MenuLang) - $($T.LangLabel)" -ForegroundColor White
     Write-Host "  $($T.MenuExit)"   -ForegroundColor White
@@ -548,6 +635,10 @@ do {
         '2' { if ($ItemAvailable) { $Sel.Office   = -not $Sel.Office } }
         '3' { if ($ItemAvailable) { $Sel.Copilot  = -not $Sel.Copilot } }
         '4' { if ($ItemAvailable) { $Sel.OneDrive = -not $Sel.OneDrive } }
+
+        'P' {
+            if ($Office.Count -gt 1) { Select-OfficeItems }
+        }
 
         'R' {
             Show-Banner
@@ -572,8 +663,17 @@ do {
                 continue
             }
 
+            $OfficeToRemove = @(Get-OfficePicked)
+
+            if ($DoOffice -and $Office.Count -gt 0 -and $OfficeToRemove.Count -eq 0) {
+                Write-Host ''
+                Write-Host "  $($T.NoneTicked)" -ForegroundColor Yellow
+                Start-Sleep -Seconds 2
+                continue
+            }
+
             $Planned = 0
-            if ($DoOffice)   { $Planned += $Office.Count }
+            if ($DoOffice)   { $Planned += $OfficeToRemove.Count }
             if ($DoCopilot)  { $Planned += $Copilot.Count }
             if ($DoOneDrive) { $Planned += $OneDrive.Count }
 
@@ -606,7 +706,7 @@ do {
             Write-Host '  ------------------------------------------------------------' -ForegroundColor DarkGray
             Write-Host ''
 
-            if ($DoOffice)   { Remove-OfficeTargets   -Targets $Office }
+            if ($DoOffice)   { Remove-OfficeTargets   -Targets $OfficeToRemove }
             if ($DoCopilot)  { Remove-CopilotTargets  -Targets $Copilot }
             if ($DoOneDrive) { Remove-OneDriveTargets -Targets $OneDrive }
 

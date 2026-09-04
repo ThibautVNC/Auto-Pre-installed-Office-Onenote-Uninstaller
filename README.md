@@ -24,7 +24,19 @@ Each component is a separate module. Pick one, pick two, or take the lot.
 
 Scans both the 64-bit and 32-bit uninstall registry hives for Click-to-Run products whose display name starts with `Microsoft 365 - ` or `Microsoft OneNote - `, then calls each package's own `UninstallString` with `displaylevel=False` so the removal runs silently.
 
-MSI-based Office installations use a different naming pattern and are deliberately left alone.
+**The match pattern is deliberately narrow, and you should think twice before widening it.** A licensed volume installation shows up as `Microsoft 365 Apps for enterprise - en-us`, which does *not* match `Microsoft 365 - ` because of the words in between. That is the whole point: run this on a machine that already has your paid deployment and it will correctly find nothing. Broaden the pattern to something like `Microsoft 365*` and it will happily uninstall the licensed product instead.
+
+MSI-based Office installations use a different naming pattern and are left alone for the same reason.
+
+#### Keeping one language
+
+OEM images often carry several language SKUs of the same Click-to-Run install — `Microsoft 365 - nl-nl`, `- fr-fr`, `- en-us`. Each has its own uninstall string that targets that language only, so they can be removed individually.
+
+When more than one Office item is detected, a `[P]` option appears in the menu. It opens a picker where every item is ticked by default; untick the one you want to keep and it is left alone. The main menu then shows how many are still ticked:
+
+```
+   [2]  [ ]  Microsoft 365 / OneNote      4 found  (3 ticked)
+```
 
 ### Copilot
 
@@ -65,6 +77,7 @@ Each entry shows what the scan actually found, so you know before you start whet
 | Key | Action |
 |---|---|
 | `1`–`4` | Toggle a component |
+| `P` | Pick individual Office items (appears when more than one is found) |
 | `S` | Start removal (asks for confirmation) |
 | `R` | Rescan |
 | `L` | Language — English / Nederlands / Français |
@@ -97,7 +110,7 @@ Each entry shows what the scan actually found, so you know before you start whet
 
 ### Easiest way
 
-Right-click `remove_preinstalled.bat` and choose **Run as administrator**. It unblocks the script, bypasses the execution policy for that run only, and starts the menu. Keep the `.bat` and the `.ps1` in the same folder.
+Right-click `uninstall_preinstalled_office.bat` and choose **Run as administrator**. It unblocks the script, bypasses the execution policy for that run only, and starts the menu. Keep the `.bat` and the `.ps1` in the same folder.
 
 ### Manually
 
@@ -155,19 +168,25 @@ Anything else is printed with its raw code so you can look it up.
 | File | Purpose |
 |---|---|
 | `uninstall_preinstalled_office.ps1` | The tool itself |
-| `remove_preinstalled.bat` | Launcher — self-elevates and runs the script, no execution policy to fight |
+| `uninstall_preinstalled_office.bat` | Launcher — self-elevates and runs the script, no execution policy to fight |
 | `image.png` | Screenshot used in this README |
 
 ---
 
 ## Changelog
 
+### v1.2
+
+- Added a **per-item picker** for Office: when several language SKUs are detected you can untick the ones to keep instead of taking all or nothing.
+- Faster startup — Copilot detection now filters inside the Appx API instead of pulling every package through the pipeline.
+- The scan shows live progress per component instead of an empty screen.
+
 ### v1.1
 
 - Added **Copilot** removal: Appx packages for all users, provisioned packages, plus the `TurnOffWindowsCopilot` policy so it stays gone after feature updates.
 - Added **OneDrive** removal: process stop and `OneDriveSetup.exe /uninstall` from all three install locations. User data is never touched.
 - New **selection menu** with mutually exclusive "Everything below" and per-component ticks, showing what the scan found for each.
-- Added a **launcher** (`remove_preinstalled.bat`) that self-elevates and runs the script without execution policy hassle.
+- Added a **launcher** (`uninstall_preinstalled_office.bat`) that self-elevates and runs the script without execution policy hassle.
 - Warning shown before removing OneDrive on a machine that may be syncing company files.
 
 ### v1.0
