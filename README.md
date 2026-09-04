@@ -112,6 +112,31 @@ Each entry shows what the scan actually found, so you know before you start whet
 
 Right-click `uninstall_preinstalled_office.bat` and choose **Run as administrator**. It unblocks the script, bypasses the execution policy for that run only, and starts the menu. Keep the `.bat` and the `.ps1` in the same folder.
 
+### From CMD
+
+A quoted path runs directly in CMD, so this is enough:
+
+```
+"%USERPROFILE%\Downloads\uninstall_preinstalled_office.bat"
+```
+
+Or change directory first:
+
+```
+cd /d "%USERPROFILE%\Downloads"
+uninstall_preinstalled_office.bat
+```
+
+The launcher starts PowerShell inside the same console window, so the menu appears right where you are. If your CMD is not already elevated, it asks for administrator rights and the menu opens in a new elevated window instead — elevation cannot happen inside a running process.
+
+### From PowerShell
+
+Same launcher, but PowerShell needs the call operator in front of the path:
+
+```powershell
+& "$env:USERPROFILE\Downloads\uninstall_preinstalled_office.bat"
+```
+
 ### Manually
 
 Open PowerShell **as Administrator**, then `cd` into the folder holding the script:
