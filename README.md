@@ -59,12 +59,16 @@ Stops any running `OneDrive.exe`, then runs `OneDriveSetup.exe /uninstall` from 
 ## Selection menu
 
 ```
-   [1]  [ ]  Everything below
-   ---------------------------------------------------------
-   [2]  [ ]  Microsoft 365 / OneNote      2 found
-   [3]  [ ]  Copilot                      1 found
-   [4]  [ ]  OneDrive                     not present
+   >  [x]  Everything below
+      ------------------------------------------------------
+      [-]  Microsoft 365 / OneNote   (locked)
+      [-]  Copilot                   (locked)
+      [-]  OneDrive                  (locked)
+
+   Up/Down to move, Space to tick
 ```
+
+Move with the **arrow keys**, tick with **Space**. The digits are reserved for the actions underneath, so nothing overlaps.
 
 The selection is mutually exclusive by design:
 
@@ -76,12 +80,17 @@ Each entry shows what the scan actually found, so you know before you start whet
 
 | Key | Action |
 |---|---|
-| `1`–`4` | Toggle a component |
-| `P` | Pick individual Office items (appears when more than one is found) |
-| `S` | Start removal (asks for confirmation) |
-| `R` | Rescan |
-| `L` | Language — English / Nederlands / Français |
+| ↑ / ↓ | Move between components |
+| Space | Tick or untick the highlighted component |
+| `1` or Enter | Start removal (asks for confirmation) |
+| `2` | Pick individual Office items (appears when more than one is found) |
+| `3` | Rescan |
+| `4` | Language — English / Nederlands / Français |
 | `0` | Exit |
+
+The Office picker works the same way: arrows and Space, with `A` to tick everything and `N` to clear it.
+
+On hosts that cannot read single keypresses — PowerShell ISE, some remoting setups — the tool falls back to typed input automatically and shows letter shortcuts (`A`, `O`, `C`, `D`) instead.
 
 ---
 
@@ -199,6 +208,12 @@ Anything else is printed with its raw code so you can look it up.
 ---
 
 ## Changelog
+
+### v1.3
+
+- **Arrow-key navigation** with Space to tick, instead of typing numbers to toggle.
+- Digits now drive the actions (`1` start, `2` Office picker, `3` rescan, `4` language, `0` exit); Enter also starts.
+- Automatic fallback to typed input on hosts without single-key support.
 
 ### v1.2
 

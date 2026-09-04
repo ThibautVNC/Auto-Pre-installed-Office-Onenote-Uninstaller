@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.2
+        Version : 1.3
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.2'
+$ScriptVersion = '1.3'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -34,10 +34,12 @@ $Strings = @{
         FoundCount    = '{0} found'
         NotFound      = 'not present'
         Locked        = 'locked'
-        MenuStart     = '[S] Start removal'
-        MenuRescan    = '[R] Rescan'
-        MenuLang      = '[L] Language'
+        MenuStart     = '[1] Start removal'
+        MenuRescan    = '[3] Rescan'
+        MenuLang      = '[4] Language'
         MenuExit      = '[0] Exit'
+        NavHint       = 'Up/Down to move, Space to tick'
+        NavHintKeys   = 'Type A / O / C / D to tick, digits for the menu'
         Choice        = '  Choice'
         HintAll       = 'Deselect [1] to pick items individually.'
         HintItems     = 'Deselect all items to unlock [1] Everything below.'
@@ -76,12 +78,13 @@ $Strings = @{
         ScanOffice    = 'Office / OneNote'
         ScanCopilot   = 'Copilot (this takes a few seconds)'
         ScanOneDrive  = 'OneDrive'
-        MenuPick      = '[P] Choose which Office items'
+        MenuPick      = '[2] Choose which Office items'
         PickHeader    = 'Which Office / OneNote items may be removed?'
         PickHint      = 'Untick a language to keep it installed.'
         PickAll       = '[A] Tick all'
         PickNone      = '[N] Tick none'
         PickBack      = '[0] Back'
+        PickHint2     = 'Up/Down to move, Space to tick'
         SelCount      = '({0} ticked)'
         NoneTicked    = 'No Office items are ticked.'
     }
@@ -99,10 +102,12 @@ $Strings = @{
         FoundCount    = '{0} gevonden'
         NotFound      = 'niet aanwezig'
         Locked        = 'vergrendeld'
-        MenuStart     = '[S] Verwijderen starten'
-        MenuRescan    = '[R] Opnieuw scannen'
-        MenuLang      = '[L] Taal'
+        MenuStart     = '[1] Verwijderen starten'
+        MenuRescan    = '[3] Opnieuw scannen'
+        MenuLang      = '[4] Taal'
         MenuExit      = '[0] Afsluiten'
+        NavHint       = 'Pijltjes om te navigeren, spatie om aan te vinken'
+        NavHintKeys   = 'Typ A / O / C / D om aan te vinken, cijfers voor het menu'
         Choice        = '  Keuze'
         HintAll       = 'Deselecteer [1] om items apart te kiezen.'
         HintItems     = 'Deselecteer alle items om [1] Alles hieronder vrij te geven.'
@@ -141,12 +146,13 @@ $Strings = @{
         ScanOffice    = 'Office / OneNote'
         ScanCopilot   = 'Copilot (dit duurt enkele seconden)'
         ScanOneDrive  = 'OneDrive'
-        MenuPick      = '[P] Kies welke Office-items'
+        MenuPick      = '[2] Kies welke Office-items'
         PickHeader    = 'Welke Office / OneNote items mogen weg?'
         PickHint      = 'Vink een taal uit om die te behouden.'
         PickAll       = '[A] Alles aanvinken'
         PickNone      = '[N] Alles uitvinken'
         PickBack      = '[0] Terug'
+        PickHint2     = 'Pijltjes om te navigeren, spatie om aan te vinken'
         SelCount      = '({0} aangevinkt)'
         NoneTicked    = 'Er zijn geen Office-items aangevinkt.'
     }
@@ -164,10 +170,12 @@ $Strings = @{
         FoundCount    = '{0} trouve(s)'
         NotFound      = 'absent'
         Locked        = 'verrouille'
-        MenuStart     = '[S] Demarrer la suppression'
-        MenuRescan    = '[R] Analyser a nouveau'
-        MenuLang      = '[L] Langue'
+        MenuStart     = '[1] Demarrer la suppression'
+        MenuRescan    = '[3] Analyser a nouveau'
+        MenuLang      = '[4] Langue'
         MenuExit      = '[0] Quitter'
+        NavHint       = 'Fleches pour naviguer, Espace pour cocher'
+        NavHintKeys   = 'Tapez A / O / C / D pour cocher, chiffres pour le menu'
         Choice        = '  Choix'
         HintAll       = 'Deselectionnez [1] pour choisir les elements un par un.'
         HintItems     = 'Deselectionnez tous les elements pour deverrouiller [1].'
@@ -206,12 +214,13 @@ $Strings = @{
         ScanOffice    = 'Office / OneNote'
         ScanCopilot   = 'Copilot (quelques secondes)'
         ScanOneDrive  = 'OneDrive'
-        MenuPick      = '[P] Choisir les elements Office'
+        MenuPick      = '[2] Choisir les elements Office'
         PickHeader    = 'Quels elements Office / OneNote peuvent etre supprimes ?'
         PickHint      = 'Decochez une langue pour la conserver.'
         PickAll       = '[A] Tout cocher'
         PickNone      = '[N] Tout decocher'
         PickBack      = '[0] Retour'
+        PickHint2     = 'Fleches pour naviguer, Espace pour cocher'
         SelCount      = '({0} coche(s))'
         NoneTicked    = 'Aucun element Office n est coche.'
     }
@@ -488,6 +497,36 @@ function Remove-OneDriveTargets {
 
 # --------------------------------------------------------------------- UI ---
 
+# Some hosts (PowerShell ISE, a few remoting scenarios) cannot read single
+# keypresses. Detected on first use, with a typed fallback so the tool still
+# works everywhere.
+$Script:RawKeys = $true
+
+function Read-MenuKey {
+    if ($Script:RawKeys) {
+        try {
+            $Key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+
+            switch ($Key.VirtualKeyCode) {
+                38 { return 'UP' }
+                40 { return 'DOWN' }
+                32 { return 'SPACE' }
+                13 { return 'ENTER' }
+                27 { return 'ESC' }
+            }
+
+            $Char = $Key.Character
+            if ($Char -match '[0-9A-Za-z]') { return ([string]$Char).ToUpper() }
+            return ''
+        }
+        catch {
+            $Script:RawKeys = $false
+        }
+    }
+
+    return (Read-Host $T.Choice).Trim().ToUpper()
+}
+
 function Show-Banner {
     Clear-Host
     Write-Host ''
@@ -498,23 +537,71 @@ function Show-Banner {
     Write-Host ''
 }
 
-function Show-Option {
+function Show-Row {
     param(
-        [string]$Key,
-        [string]$Label,
+        [bool]$IsCursor,
         [bool]$Checked,
         [bool]$Available,
+        [string]$Label,
         [string]$Detail
     )
 
+    $Arrow = if ($IsCursor) { '>' } else { ' ' }
+
     if (-not $Available) {
-        Write-Host ('   {0}  {1}  {2,-26} {3}' -f $Key, '[-]', $Label, "($($T.Locked))") -ForegroundColor DarkGray
+        Write-Host ('   {0}  {1}  {2,-26} {3}' -f $Arrow, '[-]', $Label, "($($T.Locked))") `
+            -ForegroundColor DarkGray
         return
     }
 
-    $Box    = if ($Checked) { '[x]' } else { '[ ]' }
-    $Colour = if ($Checked) { 'Green' } else { 'Gray' }
-    Write-Host ('   {0}  {1}  {2,-26} {3}' -f $Key, $Box, $Label, $Detail) -ForegroundColor $Colour
+    $Box = if ($Checked) { '[x]' } else { '[ ]' }
+
+    if ($IsCursor) {
+        $Colour = 'Cyan'
+    }
+    elseif ($Checked) {
+        $Colour = 'Green'
+    }
+    else {
+        $Colour = 'Gray'
+    }
+
+    Write-Host ('   {0}  {1}  {2,-26} {3}' -f $Arrow, $Box, $Label, $Detail) -ForegroundColor $Colour
+}
+
+function Get-RowAvailable {
+    param([int]$Row)
+
+    $ItemsSelected = $Sel.Office -or $Sel.Copilot -or $Sel.OneDrive
+
+    if ($Row -eq 0) { return (-not $ItemsSelected) }
+    return (-not $Sel.All)
+}
+
+function Move-Cursor {
+    param([int]$Current, [int]$Delta)
+
+    $Row = $Current
+    for ($n = 0; $n -lt 4; $n++) {
+        $Row = $Row + $Delta
+        if ($Row -lt 0) { $Row = 3 }
+        if ($Row -gt 3) { $Row = 0 }
+        if (Get-RowAvailable -Row $Row) { return $Row }
+    }
+    return $Current
+}
+
+function Switch-Row {
+    param([int]$Row)
+
+    if (-not (Get-RowAvailable -Row $Row)) { return }
+
+    switch ($Row) {
+        0 { $Sel.All      = -not $Sel.All }
+        1 { $Sel.Office   = -not $Sel.Office }
+        2 { $Sel.Copilot  = -not $Sel.Copilot }
+        3 { $Sel.OneDrive = -not $Sel.OneDrive }
+    }
 }
 
 function Select-Language {
@@ -524,9 +611,10 @@ function Select-Language {
     Write-Host '   [1] English'    -ForegroundColor Gray
     Write-Host '   [2] Nederlands' -ForegroundColor Gray
     Write-Host '   [3] Francais'   -ForegroundColor Gray
+    Write-Host '   [0] ...'        -ForegroundColor DarkGray
     Write-Host ''
 
-    switch (Read-Host $T.Choice) {
+    switch (Read-MenuKey) {
         '1' { return 'EN' }
         '2' { return 'NL' }
         '3' { return 'FR' }
@@ -543,6 +631,8 @@ function Get-OfficePicked {
 }
 
 function Select-OfficeItems {
+    $Cursor = 0
+
     do {
         Show-Banner
         Write-Host "  $($T.PickHeader)" -ForegroundColor White
@@ -550,30 +640,51 @@ function Select-OfficeItems {
         Write-Host ''
 
         for ($i = 0; $i -lt $Script:Office.Count; $i++) {
-            $Box    = if ($Script:OfficePick[$i]) { '[x]' } else { '[ ]' }
-            $Colour = if ($Script:OfficePick[$i]) { 'Green' } else { 'DarkGray' }
-            Write-Host ('   [{0}]  {1}  {2}' -f ($i + 1), $Box, $Script:Office[$i].DisplayName) `
+            $Arrow = if ($i -eq $Cursor) { '>' } else { ' ' }
+            $Box   = if ($Script:OfficePick[$i]) { '[x]' } else { '[ ]' }
+
+            if ($i -eq $Cursor) {
+                $Colour = 'Cyan'
+            }
+            elseif ($Script:OfficePick[$i]) {
+                $Colour = 'Green'
+            }
+            else {
+                $Colour = 'DarkGray'
+            }
+
+            Write-Host ('   {0}  {1}  {2}' -f $Arrow, $Box, $Script:Office[$i].DisplayName) `
                 -ForegroundColor $Colour
         }
 
+        Write-Host ''
+        if ($Script:RawKeys) {
+            Write-Host "   $($T.PickHint2)" -ForegroundColor DarkGray
+        }
         Write-Host ''
         Write-Host "  $($T.PickAll)"  -ForegroundColor White
         Write-Host "  $($T.PickNone)" -ForegroundColor White
         Write-Host "  $($T.PickBack)" -ForegroundColor White
         Write-Host ''
 
-        $Pick = (Read-Host $T.Choice).Trim().ToUpper()
+        $Pick = Read-MenuKey
 
-        if ($Pick -eq 'A') {
-            for ($i = 0; $i -lt $Script:OfficePick.Count; $i++) { $Script:OfficePick[$i] = $true }
-        }
-        elseif ($Pick -eq 'N') {
-            for ($i = 0; $i -lt $Script:OfficePick.Count; $i++) { $Script:OfficePick[$i] = $false }
-        }
-        elseif ($Pick -match '^\d+$') {
-            $Idx = [int]$Pick - 1
-            if ($Idx -ge 0 -and $Idx -lt $Script:OfficePick.Count) {
-                $Script:OfficePick[$Idx] = -not $Script:OfficePick[$Idx]
+        switch ($Pick) {
+            'UP'    { $Cursor--; if ($Cursor -lt 0) { $Cursor = $Script:Office.Count - 1 } }
+            'DOWN'  { $Cursor++; if ($Cursor -ge $Script:Office.Count) { $Cursor = 0 } }
+            'SPACE' { $Script:OfficePick[$Cursor] = -not $Script:OfficePick[$Cursor] }
+            'A'     { for ($i = 0; $i -lt $Script:OfficePick.Count; $i++) { $Script:OfficePick[$i] = $true } }
+            'N'     { for ($i = 0; $i -lt $Script:OfficePick.Count; $i++) { $Script:OfficePick[$i] = $false } }
+            'ESC'   { $Pick = '0' }
+            'ENTER' { $Pick = '0' }
+            default {
+                # Typed fallback: a row number toggles that row
+                if ($Pick -match '^\d+$' -and $Pick -ne '0') {
+                    $Idx = [int]$Pick - 1
+                    if ($Idx -ge 0 -and $Idx -lt $Script:OfficePick.Count) {
+                        $Script:OfficePick[$Idx] = -not $Script:OfficePick[$Idx]
+                    }
+                }
             }
         }
     } while ($Pick -ne '0')
@@ -600,21 +711,33 @@ function Get-OfficeDetail {
 Show-Banner
 Invoke-Scan
 
+$Cursor = 0
+
 do {
     $ItemsSelected = $Sel.Office -or $Sel.Copilot -or $Sel.OneDrive
     $AllAvailable  = -not $ItemsSelected
     $ItemAvailable = -not $Sel.All
 
+    # Keep the cursor on a row that is actually selectable
+    if (-not (Get-RowAvailable -Row $Cursor)) { $Cursor = Move-Cursor -Current $Cursor -Delta 1 }
+
     Show-Banner
     Write-Host "  $($T.SelectHeader)" -ForegroundColor White
     Write-Host ''
 
-    Show-Option -Key '[1]' -Label $T.OptAll -Checked $Sel.All -Available $AllAvailable -Detail ''
-    Write-Host '   ---------------------------------------------------------' -ForegroundColor DarkGray
-    Show-Option -Key '[2]' -Label $T.OptOffice   -Checked $Sel.Office   -Available $ItemAvailable -Detail (Get-OfficeDetail)
-    Show-Option -Key '[3]' -Label $T.OptCopilot  -Checked $Sel.Copilot  -Available $ItemAvailable -Detail (Get-Detail $Copilot)
-    Show-Option -Key '[4]' -Label $T.OptOneDrive -Checked $Sel.OneDrive -Available $ItemAvailable -Detail (Get-Detail $OneDrive)
+    Show-Row -IsCursor ($Cursor -eq 0) -Checked $Sel.All -Available $AllAvailable -Label $T.OptAll -Detail ''
+    Write-Host '      ------------------------------------------------------' -ForegroundColor DarkGray
+    Show-Row -IsCursor ($Cursor -eq 1) -Checked $Sel.Office   -Available $ItemAvailable -Label $T.OptOffice   -Detail (Get-OfficeDetail)
+    Show-Row -IsCursor ($Cursor -eq 2) -Checked $Sel.Copilot  -Available $ItemAvailable -Label $T.OptCopilot  -Detail (Get-Detail $Copilot)
+    Show-Row -IsCursor ($Cursor -eq 3) -Checked $Sel.OneDrive -Available $ItemAvailable -Label $T.OptOneDrive -Detail (Get-Detail $OneDrive)
     Write-Host ''
+
+    if ($Script:RawKeys) {
+        Write-Host "   $($T.NavHint)" -ForegroundColor DarkGray
+    }
+    else {
+        Write-Host "   $($T.NavHintKeys)" -ForegroundColor DarkGray
+    }
 
     if ($Sel.All)           { Write-Host "   $($T.HintAll)"   -ForegroundColor DarkGray }
     elseif ($ItemsSelected) { Write-Host "   $($T.HintItems)" -ForegroundColor DarkGray }
@@ -627,31 +750,37 @@ do {
     Write-Host "  $($T.MenuExit)"   -ForegroundColor White
     Write-Host ''
 
-    $Choice = (Read-Host $T.Choice).Trim().ToUpper()
+    $Choice = Read-MenuKey
 
     switch ($Choice) {
 
-        '1' { if ($AllAvailable)  { $Sel.All      = -not $Sel.All } }
-        '2' { if ($ItemAvailable) { $Sel.Office   = -not $Sel.Office } }
-        '3' { if ($ItemAvailable) { $Sel.Copilot  = -not $Sel.Copilot } }
-        '4' { if ($ItemAvailable) { $Sel.OneDrive = -not $Sel.OneDrive } }
+        'UP'    { $Cursor = Move-Cursor -Current $Cursor -Delta -1 }
+        'DOWN'  { $Cursor = Move-Cursor -Current $Cursor -Delta  1 }
+        'SPACE' { Switch-Row -Row $Cursor }
 
-        'P' {
+        # Letter shortcuts, mainly for the typed fallback
+        'A' { Switch-Row -Row 0 }
+        'O' { Switch-Row -Row 1 }
+        'C' { Switch-Row -Row 2 }
+        'D' { Switch-Row -Row 3 }
+
+        '2' {
             if ($Office.Count -gt 1) { Select-OfficeItems }
         }
 
-        'R' {
+        '3' {
             Show-Banner
             Invoke-Scan
         }
 
-        'L' {
+        '4' {
             $Lang = Select-Language
             $T    = $Strings[$Lang]
             $Host.UI.RawUI.WindowTitle = $T.WindowTitle
         }
 
-        'S' {
+        { $_ -in '1', 'ENTER' } {
+
             $DoOffice   = $Sel.All -or $Sel.Office
             $DoCopilot  = $Sel.All -or $Sel.Copilot
             $DoOneDrive = $Sel.All -or $Sel.OneDrive
@@ -734,12 +863,6 @@ do {
             Write-Host ''
             Write-Host "  $($T.Closed)" -ForegroundColor DarkGray
             Write-Host ''
-        }
-
-        default {
-            Write-Host ''
-            Write-Host "  $($T.Invalid)" -ForegroundColor Red
-            Start-Sleep -Seconds 1
         }
     }
 } while ($Choice -ne '0')

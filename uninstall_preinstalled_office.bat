@@ -3,7 +3,7 @@ setlocal EnableExtensions
 
 rem ============================================================================
 rem  Remove pre-installed Office / Copilot / OneDrive  -  launcher
-rem  Version : 1.2
+rem  Version : 1.3
 rem  Credit  : Thibaut VNC
 rem
 rem  Double-click this file, or right-click > Run as administrator.
