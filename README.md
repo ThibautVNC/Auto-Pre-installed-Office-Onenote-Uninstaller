@@ -1,10 +1,8 @@
-# Uninstall Pre-installed Office
+# Remove Pre-installed Office / Copilot / OneDrive
 
-Those pre-installed Microsoft 365 and OneNote packages on every new laptop are pretty annoying, and the official SaRA tool won't take them off your hands anymore. Worry no more.
+Those pre-installed Microsoft 365, Copilot and OneDrive packages on every new laptop are pretty annoying, and the official SaRA tool won't take them off your hands anymore. Worry no more.
 
-A PowerShell script that removes the pre-installed **Microsoft 365** and **Microsoft OneNote** Click-to-Run packages that ship with most new OEM Windows machines, so you can deploy the licensed version your organisation actually uses.
-
-It runs from a simple menu, shows exactly what it found before touching anything, and reports live progress while each package is being removed.
+A menu-driven cleanup tool for freshly imaged or OEM Windows machines. Tick what may go, review what was found, confirm, done. Ships with a one-click launcher so you never have to touch the execution policy.
 
 ![Screenshot of the script running](image.png)
 
@@ -12,35 +10,76 @@ It runs from a simple menu, shows exactly what it found before touching anything
 
 ## Why
 
-Every new machine shows up with a trial or consumer build of Microsoft 365 already baked in. Push your own Office deployment on top of that and you either get a failure or a lovely mixed install that nobody wants to troubleshoot at 4 PM on a Friday. Removing it through **Settings > Apps** works, but it is slow and it needs somebody clicking through dialogs on every single box.
+Every new machine shows up with a trial build of Microsoft 365 already baked in, Copilot pinned to the taskbar, and OneDrive nagging the user to sign in. Push your own Office deployment on top of that and you either get a failure or a lovely mixed install that nobody wants to troubleshoot at 4 PM on a Friday. Removing it all through **Settings > Apps** works, but it is slow and it needs somebody clicking through dialogs on every single box.
 
-So: this script digs the packages out of the registry and hands them to Microsoft's own Click-to-Run uninstaller with the UI switched off. You pick an option, it does the work, you get a clean machine.
+So: this tool digs the packages out of the registry and the Appx store and hands them to Microsoft's own uninstallers with the UI switched off. You tick what you want gone, it does the work, you get a clean machine.
 
 ---
 
-## What it does
+## Components
 
-1. Scans both the 64-bit and 32-bit uninstall registry hives:
-   - `HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`
-   - `HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall`
-2. Filters for display names starting with `Microsoft 365 - ` or `Microsoft OneNote - ` (the Click-to-Run products).
-3. Lists everything it found, with a count, before asking for confirmation.
-4. Calls each package's own `UninstallString` with `displaylevel=False` so the removal runs silently — no Microsoft dialogs to click through.
-5. Shows a live spinner with elapsed time per package, since a full Office removal can take several minutes and would otherwise look frozen.
-6. Translates the uninstaller exit code into plain language and prints a summary table, flagging when a restart is required.
+Each component is a separate module. Pick one, pick two, or take the lot.
 
-Nothing is removed until you confirm. Choosing **Rescan** after a run lets you verify the machine is actually clean.
+### Microsoft 365 / OneNote
+
+Scans both the 64-bit and 32-bit uninstall registry hives for Click-to-Run products whose display name starts with `Microsoft 365 - ` or `Microsoft OneNote - `, then calls each package's own `UninstallString` with `displaylevel=False` so the removal runs silently.
+
+MSI-based Office installations use a different naming pattern and are deliberately left alone.
+
+### Copilot
+
+Removes Copilot in three passes:
+
+1. Installed Appx packages for all users (`Remove-AppxPackage -AllUsers`).
+2. Provisioned packages, so it does not come back for newly created profiles.
+3. Sets `HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot\TurnOffWindowsCopilot = 1`, so a feature update does not quietly reinstate it.
+
+Some Copilot components ship as protected system apps. Those cannot be uninstalled and are reported as *Protected by Windows – left in place*; the policy key still keeps them switched off.
+
+### OneDrive
+
+Stops any running `OneDrive.exe`, then runs `OneDriveSetup.exe /uninstall` from every location where it exists — `SysWOW64`, `System32` and the per-user install under `%LOCALAPPDATA%`.
+
+**This module never touches user data.** The `%USERPROFILE%\OneDrive` folder and everything in it is left exactly where it is. The tool still warns you before it runs, because on a machine that is already in production OneDrive may be actively syncing company files.
+
+---
+
+## Selection menu
+
+```
+   [1]  [ ]  Everything below
+   ---------------------------------------------------------
+   [2]  [ ]  Microsoft 365 / OneNote      2 found
+   [3]  [ ]  Copilot                      1 found
+   [4]  [ ]  OneDrive                     not present
+```
+
+The selection is mutually exclusive by design:
+
+- Tick **[1] Everything below** and the three individual entries lock (shown as `[-]`).
+- Tick any individual entry and **[1]** locks instead.
+- Deselect to unlock the other side. No ambiguous state where "All" and a subset are both active.
+
+Each entry shows what the scan actually found, so you know before you start whether there is anything to do.
+
+| Key | Action |
+|---|---|
+| `1`–`4` | Toggle a component |
+| `S` | Start removal (asks for confirmation) |
+| `R` | Rescan |
+| `L` | Language — English / Nederlands / Français |
+| `0` | Exit |
 
 ---
 
 ## Features
 
-- **Menu-driven** — start, rescan, change language, or exit. No arguments to remember.
-- **Multilingual interface** — English (default), Dutch and French, switchable at runtime from the menu.
-- **Live progress** — per-package counter (`[1/3]`), spinner and elapsed timer.
-- **Readable exit codes** — `0`, `1641` and `3010` are reported as success, with `1641`/`3010` noted as *restart required*, instead of showing a bare number.
-- **Summary report** — every package with its final status once the run finishes.
-- **Safe by default** — read-only scan until you explicitly confirm the removal.
+- **One-click launcher** — the batch file elevates itself and runs the script with an execution policy bypass, so it works on a locked-down machine without any setup.
+- **Multilingual** — English (default), Dutch and French, switchable at runtime.
+- **Live progress** — per-package counter, spinner and elapsed timer, because a full Office removal can take minutes and would otherwise look frozen.
+- **Readable exit codes** — `0`, `1641` and `3010` reported as success, with `1641`/`3010` flagged as *restart required*, instead of a bare number.
+- **Summary report** — every component and its final status once the run finishes.
+- **Safe by default** — read-only scan until you explicitly confirm.
 
 ---
 
@@ -50,44 +89,54 @@ Nothing is removed until you confirm. Choosing **Rescan** after a run lets you v
 |---|---|
 | OS | Windows 10 / 11 |
 | PowerShell | 5.1 or later (7.x also works) |
-| Rights | Administrator — enforced by `#Requires -RunAsAdministrator` |
+| Rights | Administrator — enforced in both releases |
 
 ---
 
 ## Usage
 
-Open PowerShell **as Administrator** and run:
+### Easiest way
+
+Right-click `remove_preinstalled.bat` and choose **Run as administrator**. It unblocks the script, bypasses the execution policy for that run only, and starts the menu. Keep the `.bat` and the `.ps1` in the same folder.
+
+### Manually
+
+Open PowerShell **as Administrator**, then `cd` into the folder holding the script:
 
 ```powershell
-.\uninstall_preinstalled_office.ps1
-```
-
-If script execution is blocked on the machine, either unblock the file:
-
-```powershell
+cd "$env:USERPROFILE\Downloads"
 Unblock-File .\uninstall_preinstalled_office.ps1
+& .\uninstall_preinstalled_office.ps1
 ```
 
-…or run it for that session only:
+Or run it from anywhere with a full path — note the `&` in front:
+
+```powershell
+Unblock-File "$env:USERPROFILE\Downloads\uninstall_preinstalled_office.ps1"
+& "$env:USERPROFILE\Downloads\uninstall_preinstalled_office.ps1"
+```
+
+If the execution policy still blocks it, run it for that session only:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File .\uninstall_preinstalled_office.ps1
 ```
 
-### Menu
+### If PowerShell won't run it
 
-| Option | Action |
-|---|---|
-| `1` | Start removal (asks for confirmation first) |
-| `2` | Rescan the registry |
-| `3` | Switch language — English / Nederlands / Français |
-| `0` | Exit |
+**`The file ... is not digitally signed`** — the script came from the internet and carries a mark-of-the-web. Run `Unblock-File` on it as shown above, or use the `.bat` launcher which does it for you.
+
+**`The term '...' is not recognized`** — a quoted path on its own is just a string to PowerShell, so it gets printed back instead of executed. Put the call operator `&` in front of it. And `.\` means "in the current folder", so it cannot be combined with a full path like `.\C:\Users\...`.
+
+**`Get-Process : A positional parameter cannot be found`** — the `PS C:\...>` prompt got pasted along with the command. `PS` is the alias for `Get-Process`, so PowerShell tries to run that instead. Copy only the command itself, never the prompt in front of it.
+
+**A window that looks frozen** — check the title bar. If it starts with *Select* or *Selecteren*, a stray mouse click put the console into selection mode, which pauses all output until you press Esc.
 
 ---
 
 ## Exit codes
 
-The Click-to-Run uninstaller returns standard Windows Installer codes. The script maps the common ones:
+The Click-to-Run and OneDrive uninstallers return standard Windows Installer codes:
 
 | Code | Meaning |
 |---|---|
@@ -101,11 +150,39 @@ Anything else is printed with its raw code so you can look it up.
 
 ---
 
+## What's in the repo
+
+| File | Purpose |
+|---|---|
+| `uninstall_preinstalled_office.ps1` | The tool itself |
+| `remove_preinstalled.bat` | Launcher — self-elevates and runs the script, no execution policy to fight |
+| `image.png` | Screenshot used in this README |
+
+---
+
+## Changelog
+
+### v1.1
+
+- Added **Copilot** removal: Appx packages for all users, provisioned packages, plus the `TurnOffWindowsCopilot` policy so it stays gone after feature updates.
+- Added **OneDrive** removal: process stop and `OneDriveSetup.exe /uninstall` from all three install locations. User data is never touched.
+- New **selection menu** with mutually exclusive "Everything below" and per-component ticks, showing what the scan found for each.
+- Added a **launcher** (`remove_preinstalled.bat`) that self-elevates and runs the script without execution policy hassle.
+- Warning shown before removing OneDrive on a machine that may be syncing company files.
+
+### v1.0
+
+- Menu-driven removal of Microsoft 365 / OneNote Click-to-Run packages.
+- Live progress with elapsed timer, translated exit codes, summary table.
+- English / Dutch / French interface, switchable at runtime.
+
+---
+
 ## Notes
 
-- Only **Click-to-Run** packages are matched. MSI-based Office installations use a different naming pattern and are deliberately left alone.
 - Hit a `17002`? Something Office-related was already running. Let it finish, rescan, try again.
 - After a `1641` or `3010`, reboot before installing your own Office deployment. It saves you a support ticket later.
+- If a console window ever looks frozen, check the title bar. A stray mouse click puts CMD and PowerShell consoles into selection mode, which pauses all output until you press Esc.
 
 ---
 
