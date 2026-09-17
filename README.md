@@ -1,6 +1,6 @@
-# Remove Pre-installed Office / Copilot / OneDrive
+# Remove Pre-installed Office / Copilot / OneDrive / HP Bloatware
 
-Those pre-installed Microsoft 365, Copilot and OneDrive packages on every new laptop are pretty annoying, and the official SaRA tool won't take them off your hands anymore. Worry no more.
+Those pre-installed Microsoft 365, Copilot, OneDrive and HP packages on every new laptop are pretty annoying, and the official SaRA tool won't take them off your hands anymore. Worry no more.
 
 A menu-driven cleanup tool for freshly imaged or OEM Windows machines. Tick what may go, review what was found, confirm, done. Ships with a one-click launcher so you never have to touch the execution policy.
 
@@ -10,7 +10,7 @@ A menu-driven cleanup tool for freshly imaged or OEM Windows machines. Tick what
 
 ## Why
 
-Every new machine shows up with a trial build of Microsoft 365 already baked in, Copilot pinned to the taskbar, and OneDrive nagging the user to sign in. Push your own Office deployment on top of that and you either get a failure or a lovely mixed install that nobody wants to troubleshoot at 4 PM on a Friday. Removing it all through **Settings > Apps** works, but it is slow and it needs somebody clicking through dialogs on every single box.
+Every new machine shows up with a trial build of Microsoft 365 already baked in, Copilot pinned to the taskbar, OneDrive nagging the user to sign in, and — on HP hardware — a Wolf Security stack nobody asked for. Push your own Office deployment on top of that and you either get a failure or a lovely mixed install that nobody wants to troubleshoot at 4 PM on a Friday. Removing it all through **Settings > Apps** works, but it is slow and it needs somebody clicking through dialogs on every single box.
 
 So: this tool digs the packages out of the registry and the Appx store and hands them to Microsoft's own uninstallers with the UI switched off. You tick what you want gone, it does the work, you get a clean machine.
 
@@ -48,6 +48,20 @@ Removes Copilot in three passes:
 
 Some Copilot components ship as protected system apps. Those cannot be uninstalled and are reported as *Protected by Windows – left in place*; the policy key still keeps them switched off.
 
+### HP bloatware
+
+Detects the usual OEM payload on HP machines: HP Wolf Security and its console, HP Support Assistant, HP Sure Click / Sure Sense / Sure Run, HP Client Security Manager, HP Connection Optimizer, HP JumpStart, HP Privacy Settings, HP QuickDrop, myHP, and the HP Store apps that all ship under the same publisher prefix.
+
+Three things worth knowing about how it behaves:
+
+**Wolf Security is removed in a fixed order.** It only uninstalls cleanly as base package first, then the Console, then the HP Security Update Service. The tool sorts the detected items into that order automatically, so you do not have to think about it.
+
+**Components without a silent uninstall are skipped, not forced.** If a package offers no `QuietUninstallString` and is not an MSI that can be driven with `/qn`, the tool reports it as *no silent uninstall – remove manually* and moves on. Running it anyway would pop a GUI and hang the whole run waiting for a click.
+
+**Drivers and hardware components are deliberately absent from the list.** HP Hotkey Support, audio components and firmware utilities are not matched, because removing them breaks your function keys and sound. As with the Office pattern, the match list is curated rather than a broad `HP*` sweep.
+
+One caveat that is a policy question rather than a technical one: HP Wolf Security is security software. On a company machine, removing it may be something your organisation actually relies on. The tool warns you before it runs, but it cannot know your policy.
+
 ### OneDrive
 
 Stops any running `OneDrive.exe`, then runs `OneDriveSetup.exe /uninstall` from every location where it exists — `SysWOW64`, `System32` and the per-user install under `%LOCALAPPDATA%`.
@@ -64,6 +78,7 @@ Stops any running `OneDrive.exe`, then runs `OneDriveSetup.exe /uninstall` from 
       [-]  Microsoft 365 / OneNote   (locked)
       [-]  Copilot                   (locked)
       [-]  OneDrive                  (locked)
+      [-]  HP bloatware              (locked)
 
    Up/Down to move, Space to tick
 ```
@@ -84,13 +99,14 @@ Each entry shows what the scan actually found, so you know before you start whet
 | Space | Tick or untick the highlighted component |
 | `1` or Enter | Start removal (asks for confirmation) |
 | `2` | Pick individual Office items (appears when more than one is found) |
-| `3` | Rescan |
-| `4` | Language — English / Nederlands / Français |
+| `3` | Pick individual HP items (appears when more than one is found) |
+| `4` | Rescan |
+| `5` | Language — English / Nederlands / Français |
 | `0` | Exit |
 
-The Office picker works the same way: arrows and Space, with `A` to tick everything and `N` to clear it.
+The Office and HP pickers work the same way: arrows and Space, with `A` to tick everything and `N` to clear it.
 
-On hosts that cannot read single keypresses — PowerShell ISE, some remoting setups — the tool falls back to typed input automatically and shows letter shortcuts (`A`, `O`, `C`, `D`) instead.
+On hosts that cannot read single keypresses — PowerShell ISE, some remoting setups — the tool falls back to typed input automatically and shows letter shortcuts (`A`, `O`, `C`, `D`, `H`) instead.
 
 ---
 
@@ -208,6 +224,14 @@ Anything else is printed with its raw code so you can look it up.
 ---
 
 ## Changelog
+
+### v1.4
+
+- Added an **HP bloatware** module: Wolf Security and console, Support Assistant, Sure Click / Sure Sense / Sure Run, Client Security Manager, Connection Optimizer, JumpStart, Privacy Settings, QuickDrop, myHP and the HP Store apps.
+- Wolf Security components are removed in the order they actually uninstall in.
+- Packages with no silent uninstall are reported rather than launched, so a GUI never hangs the run.
+- Drivers, HP Hotkey Support and audio components are excluded by design.
+- The item picker is now generic and serves both the Office and HP lists.
 
 ### v1.3
 

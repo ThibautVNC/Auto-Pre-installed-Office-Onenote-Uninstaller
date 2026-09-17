@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.3
+        Version : 1.4
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.3'
+$ScriptVersion = '1.4'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -35,8 +35,8 @@ $Strings = @{
         NotFound      = 'not present'
         Locked        = 'locked'
         MenuStart     = '[1] Start removal'
-        MenuRescan    = '[3] Rescan'
-        MenuLang      = '[4] Language'
+        MenuRescan    = '[4] Rescan'
+        MenuLang      = '[5] Language'
         MenuExit      = '[0] Exit'
         NavHint       = 'Up/Down to move, Space to tick'
         NavHintKeys   = 'Type A / O / C / D to tick, digits for the menu'
@@ -86,7 +86,14 @@ $Strings = @{
         PickBack      = '[0] Back'
         PickHint2     = 'Up/Down to move, Space to tick'
         SelCount      = '({0} ticked)'
-        NoneTicked    = 'No Office items are ticked.'
+        NoneTicked    = 'No items are ticked.'
+        OptHp         = 'HP bloatware'
+        ScanHp        = 'HP software'
+        SecHp         = '--- HP bloatware ---'
+        MenuPickHp    = '[3] Choose which HP items'
+        PickHeaderHp  = 'Which HP items may be removed?'
+        WarnHp        = 'Careful: HP Wolf Security is security software. Check company policy first.'
+        StManual      = 'No silent uninstall - remove manually'
     }
 
     NL = @{
@@ -103,8 +110,8 @@ $Strings = @{
         NotFound      = 'niet aanwezig'
         Locked        = 'vergrendeld'
         MenuStart     = '[1] Verwijderen starten'
-        MenuRescan    = '[3] Opnieuw scannen'
-        MenuLang      = '[4] Taal'
+        MenuRescan    = '[4] Opnieuw scannen'
+        MenuLang      = '[5] Taal'
         MenuExit      = '[0] Afsluiten'
         NavHint       = 'Pijltjes om te navigeren, spatie om aan te vinken'
         NavHintKeys   = 'Typ A / O / C / D om aan te vinken, cijfers voor het menu'
@@ -154,7 +161,14 @@ $Strings = @{
         PickBack      = '[0] Terug'
         PickHint2     = 'Pijltjes om te navigeren, spatie om aan te vinken'
         SelCount      = '({0} aangevinkt)'
-        NoneTicked    = 'Er zijn geen Office-items aangevinkt.'
+        NoneTicked    = 'Er zijn geen items aangevinkt.'
+        OptHp         = 'HP bloatware'
+        ScanHp        = 'HP software'
+        SecHp         = '--- HP bloatware ---'
+        MenuPickHp    = '[3] Kies welke HP-items'
+        PickHeaderHp  = 'Welke HP-items mogen weg?'
+        WarnHp        = 'Opgelet: HP Wolf Security is beveiligingssoftware. Check eerst het bedrijfsbeleid.'
+        StManual      = 'Geen stille uninstall - manueel verwijderen'
     }
 
     FR = @{
@@ -171,8 +185,8 @@ $Strings = @{
         NotFound      = 'absent'
         Locked        = 'verrouille'
         MenuStart     = '[1] Demarrer la suppression'
-        MenuRescan    = '[3] Analyser a nouveau'
-        MenuLang      = '[4] Langue'
+        MenuRescan    = '[4] Analyser a nouveau'
+        MenuLang      = '[5] Langue'
         MenuExit      = '[0] Quitter'
         NavHint       = 'Fleches pour naviguer, Espace pour cocher'
         NavHintKeys   = 'Tapez A / O / C / D pour cocher, chiffres pour le menu'
@@ -222,7 +236,14 @@ $Strings = @{
         PickBack      = '[0] Retour'
         PickHint2     = 'Fleches pour naviguer, Espace pour cocher'
         SelCount      = '({0} coche(s))'
-        NoneTicked    = 'Aucun element Office n est coche.'
+        NoneTicked    = 'Aucun element n est coche.'
+        OptHp         = 'Bloatware HP'
+        ScanHp        = 'Logiciels HP'
+        SecHp         = '--- Bloatware HP ---'
+        MenuPickHp    = '[3] Choisir les elements HP'
+        PickHeaderHp  = 'Quels elements HP peuvent etre supprimes ?'
+        WarnHp        = 'Attention : HP Wolf Security est un logiciel de securite. Verifiez la politique.'
+        StManual      = 'Pas de desinstallation silencieuse - a faire manuellement'
     }
 }
 
@@ -232,7 +253,7 @@ $T    = $Strings[$Lang]
 $Host.UI.RawUI.WindowTitle = $T.WindowTitle
 
 # Selection state
-$Sel = @{ All = $false; Office = $false; Copilot = $false; OneDrive = $false }
+$Sel = @{ All = $false; Office = $false; Copilot = $false; OneDrive = $false; Hp = $false }
 
 $Script:Results      = @()
 $Script:RebootNeeded = $false
@@ -287,6 +308,81 @@ function Invoke-Scan {
     Write-Host "    - $($T.ScanOneDrive)" -NoNewline -ForegroundColor DarkGray
     $Script:OneDrive = @(Get-OneDriveTargets)
     Write-Host '  ok' -ForegroundColor DarkGray
+
+    Write-Host "    - $($T.ScanHp)" -NoNewline -ForegroundColor DarkGray
+    $Script:Hp = @(Get-HpTargets)
+
+    $Script:HpPick = @()
+    foreach ($h in $Script:Hp) { $Script:HpPick += $true }
+
+    Write-Host '  ok' -ForegroundColor DarkGray
+}
+
+function Get-HpTargets {
+    # Curated list. Same principle as the Office pattern: match only what is
+    # genuinely OEM bloatware, never a broad "HP*" sweep. Drivers, firmware,
+    # HP Hotkey Support and audio components are deliberately absent, because
+    # removing those breaks hardware function keys and sound.
+    $Patterns = @(
+        '^HP Wolf Security'
+        '^HP Security Update Service'
+        '^HP Sure (Click|Sense|Run|Recover|Start|Backup)'
+        '^HP Client Security Manager'
+        '^HP Support Assistant'
+        '^HP JumpStart'
+        '^HP Connection Optimizer'
+        '^HP Documentation'
+        '^HP Privacy Settings'
+        '^HP System Information'
+        '^HP Notifications'
+        '^HP Desktop Support Utilities'
+        '^HP QuickDrop'
+        '^HP Registration Service'
+        '^HP PC Hardware Diagnostics'
+        '^myHP'
+    )
+    $Combined = ($Patterns -join '|')
+
+    $Found = @()
+
+    $Found += Get-ChildItem -Path `
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', `
+        'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall' `
+        -ErrorAction SilentlyContinue |
+        Get-ItemProperty |
+        Where-Object { $_.DisplayName -match $Combined } |
+        ForEach-Object {
+            [pscustomobject]@{
+                Kind        = 'Registry'
+                DisplayName = $_.DisplayName
+                Quiet       = $_.QuietUninstallString
+                Uninstall   = $_.UninstallString
+                Id          = $null
+            }
+        }
+
+    # HP Store apps all ship under the same publisher prefix
+    $Found += Get-AppxPackage -AllUsers -Name 'AD2F1837.*' -ErrorAction SilentlyContinue |
+              ForEach-Object {
+                  [pscustomobject]@{
+                      Kind        = 'Appx'
+                      DisplayName = $_.Name
+                      Quiet       = $null
+                      Uninstall   = $null
+                      Id          = $_.PackageFullName
+                  }
+              }
+
+    # Wolf Security only uninstalls cleanly in this order
+    $Weight = {
+        param($Name)
+        if ($Name -match '^HP Wolf Security - Console') { return 2 }
+        if ($Name -match '^HP Wolf Security')           { return 1 }
+        if ($Name -match '^HP Security Update Service') { return 3 }
+        return 10
+    }
+
+    $Found | Sort-Object @{ Expression = { & $Weight $_.DisplayName } }, DisplayName
 }
 
 function Get-OneDriveTargets {
@@ -453,6 +549,102 @@ function Remove-CopilotTargets {
     Write-Host ''
 }
 
+function Invoke-UninstallCommand {
+    param([string]$Command)
+
+    if ($Command -match '^"([^"]+)"\s*(.*)$') {
+        $Exe = $Matches[1]; $Arg = $Matches[2]
+    }
+    elseif ($Command -match '^(\S+)\s*(.*)$') {
+        $Exe = $Matches[1]; $Arg = $Matches[2]
+    }
+    else {
+        return $null
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Arg)) {
+        return Start-Process -FilePath $Exe -PassThru -NoNewWindow
+    }
+    return Start-Process -FilePath $Exe -ArgumentList $Arg -PassThru -NoNewWindow
+}
+
+function Get-SilentCommand {
+    param($Target)
+
+    if ($Target.Quiet) { return $Target.Quiet }
+
+    $U = $Target.Uninstall
+    if (-not $U) { return $null }
+
+    # MSI packages can always be made silent
+    if ($U -match 'msiexec' -and $U -match '(\{[0-9A-Fa-f\-]{36}\})') {
+        return "msiexec.exe /X$($Matches[1]) /qn /norestart"
+    }
+
+    # Anything else would pop a GUI and hang the run, so leave it to the user
+    return $null
+}
+
+function Remove-HpTargets {
+    param([array]$Targets)
+
+    Write-Host "  $($T.SecHp)" -ForegroundColor White
+
+    if (-not $Targets) {
+        Write-Host $T.NoneHere -ForegroundColor DarkGray
+        Write-Host ''
+        return
+    }
+
+    $Total = $Targets.Count
+    $Index = 0
+
+    foreach ($Target in $Targets) {
+        $Index++
+        $Name = $Target.DisplayName
+        Write-Host "  [$Index/$Total] $Name" -ForegroundColor Cyan
+
+        try {
+            if ($Target.Kind -eq 'Appx') {
+                Remove-AppxPackage -Package $Target.Id -AllUsers -ErrorAction Stop
+                Write-Host "        $($T.StRemoved)" -ForegroundColor Green
+                Add-Result 'HP' $Name $T.StRemoved
+                continue
+            }
+
+            $Command = Get-SilentCommand -Target $Target
+            if (-not $Command) {
+                Write-Host "        $($T.StManual)" -ForegroundColor Yellow
+                Add-Result 'HP' $Name $T.StManual
+                continue
+            }
+
+            $Process = Invoke-UninstallCommand -Command $Command
+            if (-not $Process) {
+                Write-Host "        $($T.ParseFail)" -ForegroundColor Yellow
+                Add-Result 'HP' $Name $T.StSkipped
+                continue
+            }
+
+            $Elapsed = Wait-WithProgress -Process $Process
+
+            $Code   = $Process.ExitCode
+            $Status = Get-ExitCodeText -Code $Code
+            $Colour = if ($Code -in 0, 1641, 3010) { 'Green' } else { 'Yellow' }
+            if ($Code -in 1641, 3010) { $Script:RebootNeeded = $true }
+
+            Write-Host ($T.Duration -f $Status, $Elapsed) -ForegroundColor $Colour
+            Add-Result 'HP' $Name $Status
+        }
+        catch {
+            Write-Host ("`r" + (' ' * 64) + "`r") -NoNewline
+            Write-Host ('        ' + ($T.Failed -f $_.Exception.Message)) -ForegroundColor Red
+            Add-Result 'HP' $Name $T.StFailed
+        }
+    }
+    Write-Host ''
+}
+
 function Remove-OneDriveTargets {
     param([array]$Targets)
 
@@ -572,7 +764,7 @@ function Show-Row {
 function Get-RowAvailable {
     param([int]$Row)
 
-    $ItemsSelected = $Sel.Office -or $Sel.Copilot -or $Sel.OneDrive
+    $ItemsSelected = $Sel.Office -or $Sel.Copilot -or $Sel.OneDrive -or $Sel.Hp
 
     if ($Row -eq 0) { return (-not $ItemsSelected) }
     return (-not $Sel.All)
@@ -582,10 +774,10 @@ function Move-Cursor {
     param([int]$Current, [int]$Delta)
 
     $Row = $Current
-    for ($n = 0; $n -lt 4; $n++) {
+    for ($n = 0; $n -lt 5; $n++) {
         $Row = $Row + $Delta
-        if ($Row -lt 0) { $Row = 3 }
-        if ($Row -gt 3) { $Row = 0 }
+        if ($Row -lt 0) { $Row = 4 }
+        if ($Row -gt 4) { $Row = 0 }
         if (Get-RowAvailable -Row $Row) { return $Row }
     }
     return $Current
@@ -601,6 +793,7 @@ function Switch-Row {
         1 { $Sel.Office   = -not $Sel.Office }
         2 { $Sel.Copilot  = -not $Sel.Copilot }
         3 { $Sel.OneDrive = -not $Sel.OneDrive }
+        4 { $Sel.Hp       = -not $Sel.Hp }
     }
 }
 
@@ -623,44 +816,59 @@ function Select-Language {
 }
 
 function Get-OfficePicked {
+    Get-Picked -Items $Script:Office -Picks $Script:OfficePick
+}
+
+function Get-HpPicked {
+    Get-Picked -Items $Script:Hp -Picks $Script:HpPick
+}
+
+function Get-Picked {
+    param([array]$Items, [array]$Picks)
+
     $Picked = @()
-    for ($i = 0; $i -lt $Script:Office.Count; $i++) {
-        if ($Script:OfficePick[$i]) { $Picked += $Script:Office[$i] }
+    for ($i = 0; $i -lt $Items.Count; $i++) {
+        if ($Picks[$i]) { $Picked += $Items[$i] }
     }
     $Picked
 }
 
-function Select-OfficeItems {
+function Select-Items {
+    param(
+        [array]$Items,
+        [array]$Picks,
+        [string]$Header,
+        [scriptblock]$NameOf
+    )
+
     $Cursor = 0
 
     do {
         Show-Banner
-        Write-Host "  $($T.PickHeader)" -ForegroundColor White
+        Write-Host "  $Header" -ForegroundColor White
         Write-Host "  $($T.PickHint)" -ForegroundColor DarkGray
         Write-Host ''
 
-        for ($i = 0; $i -lt $Script:Office.Count; $i++) {
+        for ($i = 0; $i -lt $Items.Count; $i++) {
             $Arrow = if ($i -eq $Cursor) { '>' } else { ' ' }
-            $Box   = if ($Script:OfficePick[$i]) { '[x]' } else { '[ ]' }
+            $Box   = if ($Picks[$i]) { '[x]' } else { '[ ]' }
 
             if ($i -eq $Cursor) {
                 $Colour = 'Cyan'
             }
-            elseif ($Script:OfficePick[$i]) {
+            elseif ($Picks[$i]) {
                 $Colour = 'Green'
             }
             else {
                 $Colour = 'DarkGray'
             }
 
-            Write-Host ('   {0}  {1}  {2}' -f $Arrow, $Box, $Script:Office[$i].DisplayName) `
+            Write-Host ('   {0}  {1}  {2}' -f $Arrow, $Box, (& $NameOf $Items[$i])) `
                 -ForegroundColor $Colour
         }
 
         Write-Host ''
-        if ($Script:RawKeys) {
-            Write-Host "   $($T.PickHint2)" -ForegroundColor DarkGray
-        }
+        if ($Script:RawKeys) { Write-Host "   $($T.PickHint2)" -ForegroundColor DarkGray }
         Write-Host ''
         Write-Host "  $($T.PickAll)"  -ForegroundColor White
         Write-Host "  $($T.PickNone)" -ForegroundColor White
@@ -670,19 +878,18 @@ function Select-OfficeItems {
         $Pick = Read-MenuKey
 
         switch ($Pick) {
-            'UP'    { $Cursor--; if ($Cursor -lt 0) { $Cursor = $Script:Office.Count - 1 } }
-            'DOWN'  { $Cursor++; if ($Cursor -ge $Script:Office.Count) { $Cursor = 0 } }
-            'SPACE' { $Script:OfficePick[$Cursor] = -not $Script:OfficePick[$Cursor] }
-            'A'     { for ($i = 0; $i -lt $Script:OfficePick.Count; $i++) { $Script:OfficePick[$i] = $true } }
-            'N'     { for ($i = 0; $i -lt $Script:OfficePick.Count; $i++) { $Script:OfficePick[$i] = $false } }
+            'UP'    { $Cursor--; if ($Cursor -lt 0) { $Cursor = $Items.Count - 1 } }
+            'DOWN'  { $Cursor++; if ($Cursor -ge $Items.Count) { $Cursor = 0 } }
+            'SPACE' { $Picks[$Cursor] = -not $Picks[$Cursor] }
+            'A'     { for ($i = 0; $i -lt $Picks.Count; $i++) { $Picks[$i] = $true } }
+            'N'     { for ($i = 0; $i -lt $Picks.Count; $i++) { $Picks[$i] = $false } }
             'ESC'   { $Pick = '0' }
             'ENTER' { $Pick = '0' }
             default {
-                # Typed fallback: a row number toggles that row
                 if ($Pick -match '^\d+$' -and $Pick -ne '0') {
                     $Idx = [int]$Pick - 1
-                    if ($Idx -ge 0 -and $Idx -lt $Script:OfficePick.Count) {
-                        $Script:OfficePick[$Idx] = -not $Script:OfficePick[$Idx]
+                    if ($Idx -ge 0 -and $Idx -lt $Picks.Count) {
+                        $Picks[$Idx] = -not $Picks[$Idx]
                     }
                 }
             }
@@ -693,6 +900,17 @@ function Select-OfficeItems {
 function Get-Detail {
     param($Items)
     if ($Items.Count -gt 0) { $T.FoundCount -f $Items.Count } else { $T.NotFound }
+}
+
+function Get-HpDetail {
+    if ($Script:Hp.Count -eq 0) { return $T.NotFound }
+
+    $Ticked = @(Get-HpPicked).Count
+    $Text   = $T.FoundCount -f $Script:Hp.Count
+    if ($Ticked -ne $Script:Hp.Count) {
+        $Text = "$Text  " + ($T.SelCount -f $Ticked)
+    }
+    $Text
 }
 
 function Get-OfficeDetail {
@@ -714,7 +932,7 @@ Invoke-Scan
 $Cursor = 0
 
 do {
-    $ItemsSelected = $Sel.Office -or $Sel.Copilot -or $Sel.OneDrive
+    $ItemsSelected = $Sel.Office -or $Sel.Copilot -or $Sel.OneDrive -or $Sel.Hp
     $AllAvailable  = -not $ItemsSelected
     $ItemAvailable = -not $Sel.All
 
@@ -730,6 +948,7 @@ do {
     Show-Row -IsCursor ($Cursor -eq 1) -Checked $Sel.Office   -Available $ItemAvailable -Label $T.OptOffice   -Detail (Get-OfficeDetail)
     Show-Row -IsCursor ($Cursor -eq 2) -Checked $Sel.Copilot  -Available $ItemAvailable -Label $T.OptCopilot  -Detail (Get-Detail $Copilot)
     Show-Row -IsCursor ($Cursor -eq 3) -Checked $Sel.OneDrive -Available $ItemAvailable -Label $T.OptOneDrive -Detail (Get-Detail $OneDrive)
+    Show-Row -IsCursor ($Cursor -eq 4) -Checked $Sel.Hp       -Available $ItemAvailable -Label $T.OptHp       -Detail (Get-HpDetail)
     Write-Host ''
 
     if ($Script:RawKeys) {
@@ -744,7 +963,8 @@ do {
     Write-Host ''
 
     Write-Host "  $($T.MenuStart)"  -ForegroundColor White
-    if ($Office.Count -gt 1) { Write-Host "  $($T.MenuPick)" -ForegroundColor White }
+    if ($Office.Count -gt 1) { Write-Host "  $($T.MenuPick)"   -ForegroundColor White }
+    if ($Hp.Count     -gt 1) { Write-Host "  $($T.MenuPickHp)" -ForegroundColor White }
     Write-Host "  $($T.MenuRescan)" -ForegroundColor White
     Write-Host "  $($T.MenuLang) - $($T.LangLabel)" -ForegroundColor White
     Write-Host "  $($T.MenuExit)"   -ForegroundColor White
@@ -763,17 +983,28 @@ do {
         'O' { Switch-Row -Row 1 }
         'C' { Switch-Row -Row 2 }
         'D' { Switch-Row -Row 3 }
+        'H' { Switch-Row -Row 4 }
 
         '2' {
-            if ($Office.Count -gt 1) { Select-OfficeItems }
+            if ($Office.Count -gt 1) {
+                Select-Items -Items $Office -Picks $Script:OfficePick `
+                    -Header $T.PickHeader -NameOf { param($i) $i.DisplayName }
+            }
         }
 
         '3' {
+            if ($Hp.Count -gt 1) {
+                Select-Items -Items $Hp -Picks $Script:HpPick `
+                    -Header $T.PickHeaderHp -NameOf { param($i) $i.DisplayName }
+            }
+        }
+
+        '4' {
             Show-Banner
             Invoke-Scan
         }
 
-        '4' {
+        '5' {
             $Lang = Select-Language
             $T    = $Strings[$Lang]
             $Host.UI.RawUI.WindowTitle = $T.WindowTitle
@@ -784,8 +1015,9 @@ do {
             $DoOffice   = $Sel.All -or $Sel.Office
             $DoCopilot  = $Sel.All -or $Sel.Copilot
             $DoOneDrive = $Sel.All -or $Sel.OneDrive
+            $DoHp       = $Sel.All -or $Sel.Hp
 
-            if (-not ($DoOffice -or $DoCopilot -or $DoOneDrive)) {
+            if (-not ($DoOffice -or $DoCopilot -or $DoOneDrive -or $DoHp)) {
                 Write-Host ''
                 Write-Host "  $($T.NothingSel)" -ForegroundColor Yellow
                 Start-Sleep -Seconds 2
@@ -793,6 +1025,14 @@ do {
             }
 
             $OfficeToRemove = @(Get-OfficePicked)
+            $HpToRemove     = @(Get-HpPicked)
+
+            if ($DoHp -and $Hp.Count -gt 0 -and $HpToRemove.Count -eq 0) {
+                Write-Host ''
+                Write-Host "  $($T.NoneTicked)" -ForegroundColor Yellow
+                Start-Sleep -Seconds 2
+                continue
+            }
 
             if ($DoOffice -and $Office.Count -gt 0 -and $OfficeToRemove.Count -eq 0) {
                 Write-Host ''
@@ -805,6 +1045,7 @@ do {
             if ($DoOffice)   { $Planned += $OfficeToRemove.Count }
             if ($DoCopilot)  { $Planned += $Copilot.Count }
             if ($DoOneDrive) { $Planned += $OneDrive.Count }
+            if ($DoHp)       { $Planned += $HpToRemove.Count }
 
             if ($Planned -eq 0) {
                 Write-Host ''
@@ -816,6 +1057,10 @@ do {
             Write-Host ''
             if ($DoOneDrive -and $OneDrive.Count -gt 0) {
                 Write-Host "  $($T.WarnOneDrive)" -ForegroundColor Yellow
+                Write-Host ''
+            }
+            if ($DoHp -and ($HpToRemove | Where-Object { $_.DisplayName -match 'Wolf Security|Sure Click|Sure Sense|Client Security' })) {
+                Write-Host "  $($T.WarnHp)" -ForegroundColor Yellow
                 Write-Host ''
             }
 
@@ -838,6 +1083,7 @@ do {
             if ($DoOffice)   { Remove-OfficeTargets   -Targets $OfficeToRemove }
             if ($DoCopilot)  { Remove-CopilotTargets  -Targets $Copilot }
             if ($DoOneDrive) { Remove-OneDriveTargets -Targets $OneDrive }
+            if ($DoHp)       { Remove-HpTargets       -Targets $HpToRemove }
 
             Write-Host '  ------------------------------------------------------------' -ForegroundColor DarkGray
             Write-Host $T.HeaderSummary -ForegroundColor White
