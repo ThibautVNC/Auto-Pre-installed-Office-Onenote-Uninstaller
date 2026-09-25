@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.4
+        Version : 1.7
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.4'
+$ScriptVersion = '1.7'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -37,7 +37,15 @@ $Strings = @{
         MenuStart     = '[1] Start removal'
         MenuRescan    = '[4] Rescan'
         MenuLang      = '[5] Language'
+        MenuReboot    = '[6] Reboot now'
         MenuExit      = '[0] Exit'
+        ConfirmReboot = '  Reboot this machine now? (Y/N)'
+        Rebooting     = 'Rebooting in 5 seconds - close this window to cancel.'
+        RebootOffer   = '  A restart is needed. Reboot now? (Y/N)'
+        ShellBack     = 'Windows Explorer was restarted (HP uninstallers close it).'
+        WarnShell     = 'Heads up: the desktop and taskbar will disappear during this step. That is normal - Explorer is restarted afterwards.'
+        RebootAsk     = '  Reboot now to finish up? (Y/N)'
+        RunDone       = 'Run finished.'
         NavHint       = 'Up/Down to move, Space to tick'
         NavHintKeys   = 'Type A / O / C / D to tick, digits for the menu'
         Choice        = '  Choice'
@@ -94,6 +102,9 @@ $Strings = @{
         PickHeaderHp  = 'Which HP items may be removed?'
         WarnHp        = 'Careful: HP Wolf Security is security software. Check company policy first.'
         StManual      = 'No silent uninstall - remove manually'
+        StStillThere  = 'Reported OK but still installed - reboot and retry'
+        Verifying     = 'verifying...'
+        HpStuckNote   = 'Some HP components survived. Reboot, then run this again - HP protects them while they run.'
     }
 
     NL = @{
@@ -112,7 +123,15 @@ $Strings = @{
         MenuStart     = '[1] Verwijderen starten'
         MenuRescan    = '[4] Opnieuw scannen'
         MenuLang      = '[5] Taal'
+        MenuReboot    = '[6] Nu herstarten'
         MenuExit      = '[0] Afsluiten'
+        ConfirmReboot = '  Dit toestel nu herstarten? (J/N)'
+        Rebooting     = 'Herstart over 5 seconden - sluit dit venster om te annuleren.'
+        RebootOffer   = '  Een herstart is nodig. Nu herstarten? (J/N)'
+        ShellBack     = 'Windows Verkenner is opnieuw gestart (HP-uninstallers sluiten die af).'
+        WarnShell     = 'Let op: bureaublad en taakbalk verdwijnen tijdens deze stap. Dat is normaal - Verkenner wordt daarna opnieuw gestart.'
+        RebootAsk     = '  Nu herstarten om af te ronden? (J/N)'
+        RunDone       = 'Run afgerond.'
         NavHint       = 'Pijltjes om te navigeren, spatie om aan te vinken'
         NavHintKeys   = 'Typ A / O / C / D om aan te vinken, cijfers voor het menu'
         Choice        = '  Keuze'
@@ -169,6 +188,9 @@ $Strings = @{
         PickHeaderHp  = 'Welke HP-items mogen weg?'
         WarnHp        = 'Opgelet: HP Wolf Security is beveiligingssoftware. Check eerst het bedrijfsbeleid.'
         StManual      = 'Geen stille uninstall - manueel verwijderen'
+        StStillThere  = 'Meldde OK maar staat er nog - herstart en run opnieuw'
+        Verifying     = 'controleren...'
+        HpStuckNote   = 'Sommige HP-onderdelen staan er nog. Herstart en run opnieuw - HP beschermt ze zolang ze draaien.'
     }
 
     FR = @{
@@ -187,7 +209,15 @@ $Strings = @{
         MenuStart     = '[1] Demarrer la suppression'
         MenuRescan    = '[4] Analyser a nouveau'
         MenuLang      = '[5] Langue'
+        MenuReboot    = '[6] Redemarrer maintenant'
         MenuExit      = '[0] Quitter'
+        ConfirmReboot = '  Redemarrer cette machine maintenant ? (O/N)'
+        Rebooting     = 'Redemarrage dans 5 secondes - fermez cette fenetre pour annuler.'
+        RebootOffer   = '  Un redemarrage est necessaire. Redemarrer maintenant ? (O/N)'
+        ShellBack     = 'L Explorateur Windows a ete relance (les desinstalleurs HP le ferment).'
+        WarnShell     = 'Attention : le bureau et la barre des taches vont disparaitre. C est normal - l Explorateur sera relance.'
+        RebootAsk     = '  Redemarrer maintenant pour terminer ? (O/N)'
+        RunDone       = 'Execution terminee.'
         NavHint       = 'Fleches pour naviguer, Espace pour cocher'
         NavHintKeys   = 'Tapez A / O / C / D pour cocher, chiffres pour le menu'
         Choice        = '  Choix'
@@ -244,6 +274,9 @@ $Strings = @{
         PickHeaderHp  = 'Quels elements HP peuvent etre supprimes ?'
         WarnHp        = 'Attention : HP Wolf Security est un logiciel de securite. Verifiez la politique.'
         StManual      = 'Pas de desinstallation silencieuse - a faire manuellement'
+        StStillThere  = 'OK signale mais toujours installe - redemarrez et relancez'
+        Verifying     = 'verification...'
+        HpStuckNote   = 'Certains composants HP subsistent. Redemarrez puis relancez.'
     }
 }
 
@@ -257,6 +290,7 @@ $Sel = @{ All = $false; Office = $false; Copilot = $false; OneDrive = $false; Hp
 
 $Script:Results      = @()
 $Script:RebootNeeded = $false
+$Script:HpStuck      = $false
 
 # --------------------------------------------------------------- Detection --
 
@@ -326,6 +360,9 @@ function Get-HpTargets {
     $Patterns = @(
         '^HP Wolf Security'
         '^HP Security Update Service'
+        '^HP One Agent'
+        '^HP Insights'
+        '^HP Analytics'
         '^HP Sure (Click|Sense|Run|Recover|Start|Backup)'
         '^HP Client Security Manager'
         '^HP Support Assistant'
@@ -379,6 +416,8 @@ function Get-HpTargets {
         if ($Name -match '^HP Wolf Security - Console') { return 2 }
         if ($Name -match '^HP Wolf Security')           { return 1 }
         if ($Name -match '^HP Security Update Service') { return 3 }
+        # One Agent re-deploys HP software, so it goes last
+        if ($Name -match '^HP One Agent')               { return 20 }
         return 10
     }
 
@@ -585,10 +624,73 @@ function Get-SilentCommand {
     return $null
 }
 
+function Test-StillInstalled {
+    param([string]$DisplayName)
+
+    $Hit = Get-ChildItem -Path `
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', `
+        'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall' `
+        -ErrorAction SilentlyContinue |
+        Get-ItemProperty |
+        Where-Object { $_.DisplayName -eq $DisplayName }
+
+    return [bool]$Hit
+}
+
+function Wait-UntilGone {
+    # Several HP uninstallers return exit code 0 within seconds while the real
+    # work happens in a child process, so the exit code alone proves nothing.
+    # Wait for the registry entry to actually disappear instead.
+    param(
+        [string]$DisplayName,
+        [int]$TimeoutSeconds = 180
+    )
+
+    $Watch  = [System.Diagnostics.Stopwatch]::StartNew()
+    $Frames = @('|', '/', '-', '\')
+    $f = 0
+
+    while ($Watch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        if (-not (Test-StillInstalled -DisplayName $DisplayName)) {
+            $Watch.Stop()
+            Write-Host ("`r" + (' ' * 64) + "`r") -NoNewline
+            return $true
+        }
+
+        Write-Host ("`r        {0} {1}  {2:mm\:ss} " -f `
+            $Frames[$f % $Frames.Count], $T.Verifying, $Watch.Elapsed) `
+            -NoNewline -ForegroundColor DarkGray
+        Start-Sleep -Milliseconds 500
+        $f++
+    }
+
+    $Watch.Stop()
+    Write-Host ("`r" + (' ' * 64) + "`r") -NoNewline
+    return $false
+}
+
+function Restore-Shell {
+    # HP uninstallers unload shell extensions, which takes explorer.exe with
+    # them. Without this the desktop and taskbar stay gone until a reboot.
+    if (-not (Get-Process -Name 'explorer' -ErrorAction SilentlyContinue)) {
+        try {
+            Start-Process -FilePath 'explorer.exe' -ErrorAction Stop
+            Start-Sleep -Seconds 2
+            Write-Host "        $($T.ShellBack)" -ForegroundColor DarkGray
+        }
+        catch { }
+    }
+}
+
 function Remove-HpTargets {
     param([array]$Targets)
 
     Write-Host "  $($T.SecHp)" -ForegroundColor White
+
+    if ($Targets) {
+        Write-Host "  $($T.WarnShell)" -ForegroundColor Yellow
+        Write-Host ''
+    }
 
     if (-not $Targets) {
         Write-Host $T.NoneHere -ForegroundColor DarkGray
@@ -628,13 +730,23 @@ function Remove-HpTargets {
 
             $Elapsed = Wait-WithProgress -Process $Process
 
-            $Code   = $Process.ExitCode
-            $Status = Get-ExitCodeText -Code $Code
-            $Colour = if ($Code -in 0, 1641, 3010) { 'Green' } else { 'Yellow' }
+            $Code = $Process.ExitCode
             if ($Code -in 1641, 3010) { $Script:RebootNeeded = $true }
 
-            Write-Host ($T.Duration -f $Status, $Elapsed) -ForegroundColor $Colour
-            Add-Result 'HP' $Name $Status
+            # Trust the registry, not the exit code
+            $Gone = Wait-UntilGone -DisplayName $Name
+
+            if ($Gone) {
+                $Status = Get-ExitCodeText -Code $Code
+                Write-Host ($T.Duration -f $Status, $Elapsed) -ForegroundColor Green
+                Add-Result 'HP' $Name $Status
+            }
+            else {
+                $Script:HpStuck      = $true
+                $Script:RebootNeeded = $true
+                Write-Host "        $($T.StStillThere)" -ForegroundColor Yellow
+                Add-Result 'HP' $Name $T.StStillThere
+            }
         }
         catch {
             Write-Host ("`r" + (' ' * 64) + "`r") -NoNewline
@@ -642,6 +754,8 @@ function Remove-HpTargets {
             Add-Result 'HP' $Name $T.StFailed
         }
     }
+
+    Restore-Shell
     Write-Host ''
 }
 
@@ -717,6 +831,13 @@ function Read-MenuKey {
     }
 
     return (Read-Host $T.Choice).Trim().ToUpper()
+}
+
+function Invoke-Reboot {
+    Write-Host ''
+    Write-Host "  $($T.Rebooting)" -ForegroundColor Yellow
+    Start-Sleep -Seconds 5
+    Restart-Computer -Force
 }
 
 function Show-Banner {
@@ -967,6 +1088,7 @@ do {
     if ($Hp.Count     -gt 1) { Write-Host "  $($T.MenuPickHp)" -ForegroundColor White }
     Write-Host "  $($T.MenuRescan)" -ForegroundColor White
     Write-Host "  $($T.MenuLang) - $($T.LangLabel)" -ForegroundColor White
+    Write-Host "  $($T.MenuReboot)" -ForegroundColor White
     Write-Host "  $($T.MenuExit)"   -ForegroundColor White
     Write-Host ''
 
@@ -1073,6 +1195,7 @@ do {
 
             $Script:Results      = @()
             $Script:RebootNeeded = $false
+            $Script:HpStuck      = $false
 
             Write-Host ''
             Write-Host '  ------------------------------------------------------------' -ForegroundColor DarkGray
@@ -1093,16 +1216,36 @@ do {
             }
             Write-Host ''
 
-            if ($Script:RebootNeeded) {
-                Write-Host "  $($T.RebootNote)" -ForegroundColor Yellow
+            if ($Script:HpStuck) {
+                Write-Host "  $($T.HpStuckNote)" -ForegroundColor Yellow
                 Write-Host ''
             }
+
+            if ($Script:RebootNeeded) {
+                Write-Host "  $($T.RebootNote)" -ForegroundColor Yellow
+            }
+            else {
+                Write-Host "  $($T.RunDone)" -ForegroundColor Green
+            }
+            Write-Host ''
+
+            # A reboot is always on offer here: HP uninstallers leave the shell
+            # and various services in a half-restarted state.
+            $Answer = Read-Host $T.RebootAsk
+            if ($Answer -match $T.YesPattern) { Invoke-Reboot }
+            Write-Host ''
 
             # Refresh detection so the menu reflects the new state
             Invoke-Scan
             Write-Host ''
 
             Read-Host $T.PressEnter | Out-Null
+        }
+
+        '6' {
+            Write-Host ''
+            $Answer = Read-Host $T.ConfirmReboot
+            if ($Answer -match $T.YesPattern) { Invoke-Reboot }
         }
 
         '0' {

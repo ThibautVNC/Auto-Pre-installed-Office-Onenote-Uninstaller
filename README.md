@@ -60,6 +60,18 @@ Three things worth knowing about how it behaves:
 
 **Drivers and hardware components are deliberately absent from the list.** HP Hotkey Support, audio components and firmware utilities are not matched, because removing them breaks your function keys and sound. As with the Office pattern, the match list is curated rather than a broad `HP*` sweep.
 
+**Success is verified, not assumed.** Several HP uninstallers return exit code 0 within a few seconds while the actual work happens elsewhere — or while Wolf Security's tamper protection quietly blocks them. Trusting that exit code produces a summary full of green *removed successfully* lines next to a Programs list that has not changed. So after each uninstall the tool polls the registry until the entry is really gone, and reports *reported OK but still installed* when it is not.
+
+#### Wolf Security is stubborn
+
+Expect to run this twice. Wolf Security protects itself while its services are running, so the first pass often gets partway and the rest needs a reboot. `HP One Agent` is in the list for the same reason: it is the component that re-deploys HP software, so it is removed last, after the things it would otherwise reinstall.
+
+If components survive, the tool says so explicitly and offers to reboot straight away, so you can go into the second pass without leaving the menu.
+
+**The desktop will disappear mid-run, and that is expected.** HP's uninstallers unload shell extensions, which takes `explorer.exe` down with them — desktop, taskbar and File Explorer all vanish at once. Windows is fine underneath; only the shell is gone. The tool warns you before the HP step starts, and restarts Explorer once the module finishes.
+
+Every run ends with a reboot prompt, because HP's uninstallers leave services and the shell in a half-restarted state. Answering no just returns you to the menu.
+
 One caveat that is a policy question rather than a technical one: HP Wolf Security is security software. On a company machine, removing it may be something your organisation actually relies on. The tool warns you before it runs, but it cannot know your policy.
 
 ### OneDrive
@@ -102,6 +114,7 @@ Each entry shows what the scan actually found, so you know before you start whet
 | `3` | Pick individual HP items (appears when more than one is found) |
 | `4` | Rescan |
 | `5` | Language — English / Nederlands / Français |
+| `6` | Reboot now (asks for confirmation) |
 | `0` | Exit |
 
 The Office and HP pickers work the same way: arrows and Space, with `A` to tick everything and `N` to clear it.
@@ -224,6 +237,22 @@ Anything else is printed with its raw code so you can look it up.
 ---
 
 ## Changelog
+
+### v1.7
+
+- Every run now ends with a **reboot prompt**, not just the runs that report a pending restart.
+- A heads-up before the HP step explains that the desktop and taskbar are about to vanish.
+
+### v1.6
+
+- Added a **reboot option** (`6`), plus an offer to restart right after a run that needs one.
+- **Explorer is restarted automatically** after the HP module, since HP's uninstallers take the shell down with them.
+
+### v1.5
+
+- HP removals are now **verified against the registry** instead of trusting the uninstaller's exit code, which several HP components return as success within seconds while changing nothing.
+- Added `HP One Agent`, `HP Insights` and `HP Analytics`; One Agent is removed last because it re-deploys the rest.
+- Surviving components are reported as such, with a reboot-and-retry prompt.
 
 ### v1.4
 
