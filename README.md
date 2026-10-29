@@ -110,14 +110,17 @@ Each entry shows what the scan actually found, so you know before you start whet
 | ↑ / ↓ | Move between components |
 | Space | Tick or untick the highlighted component |
 | `1` or Enter | Start removal (asks for confirmation) |
-| `2` | Pick individual Office items (appears when more than one is found) |
-| `3` | Pick individual HP items (appears when more than one is found) |
+| → or `V` | Show what was found on the highlighted row, and tick items individually |
+| `2` | Same, for Office |
+| `3` | Same, for HP |
 | `4` | Rescan |
 | `5` | Language — English / Nederlands / Français |
 | `6` | Reboot now (asks for confirmation) |
 | `0` | Exit |
 
-The Office and HP pickers work the same way: arrows and Space, with `A` to tick everything and `N` to clear it.
+Every component has an item view, reachable with the **right arrow** (or `V`) on the highlighted row. It lists exactly what the scan found — language SKUs, Appx package names, OneDrive install paths — and lets you untick anything you want to keep. Arrows and Space inside it too, with `A` to tick everything and `N` to clear it.
+
+It opens whenever something was found, including when that is a single item: seeing what is about to be removed matters just as much as choosing between several.
 
 On hosts that cannot read single keypresses — PowerShell ISE, some remoting setups — the tool falls back to typed input automatically and shows letter shortcuts (`A`, `O`, `C`, `D`, `H`) instead.
 
@@ -237,6 +240,12 @@ Anything else is printed with its raw code so you can look it up.
 ---
 
 ## Changelog
+
+### v1.7.1
+
+- **Fixed:** the item view only appeared when a component had two or more hits, so a single detected item could not be inspected before removal. It now opens from one item up.
+- The item view covers **all four components**, not just Office and HP — Copilot package names and OneDrive install paths are visible and tickable too.
+- Opens with the right arrow or `V` on the highlighted row, so it no longer needs a menu digit per component.
 
 ### v1.7
 
