@@ -3,7 +3,7 @@ setlocal EnableExtensions
 
 rem ============================================================================
 rem  Remove pre-installed Office / Copilot / OneDrive / HP  -  launcher
-rem  Version : 1.7.1
+rem  Version : 1.7.2
 rem  Credit  : Thibaut VNC
 rem ============================================================================
 

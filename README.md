@@ -241,6 +241,12 @@ Anything else is printed with its raw code so you can look it up.
 
 ## Changelog
 
+### v1.7.2
+
+- **Fixed:** the run could appear to freeze mid-timer and then continue when you pressed Enter. A stray click puts the console into QuickEdit selection mode, which blocks the next write until a key is pressed — the script was never stuck, it was waiting on the console. QuickEdit is now switched off for the console at startup.
+- **Esc** abandons the wait on the current item and moves to the next one.
+- A last-resort timeout stops a process that never exits from hanging the run forever, and the verification poll runs once a second instead of twice.
+
 ### v1.7.1
 
 - **Fixed:** the item view only appeared when a component had two or more hits, so a single detected item could not be inspected before removal. It now opens from one item up.
@@ -303,7 +309,8 @@ Anything else is printed with its raw code so you can look it up.
 
 - Hit a `17002`? Something Office-related was already running. Let it finish, rescan, try again.
 - After a `1641` or `3010`, reboot before installing your own Office deployment. It saves you a support ticket later.
-- If a console window ever looks frozen, check the title bar. A stray mouse click puts CMD and PowerShell consoles into selection mode, which pauses all output until you press Esc.
+- A long wait can be abandoned with **Esc**. The uninstaller keeps running in the background; the tool reports the item as still running and moves to the next one.
+- Older versions could appear to freeze mid-timer and then continue when you pressed Enter. That was the console's QuickEdit mode, not the script — it is switched off at startup since v1.7.2.
 
 ---
 

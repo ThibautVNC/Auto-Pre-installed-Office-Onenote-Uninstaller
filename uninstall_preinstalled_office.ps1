@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.7.1
+        Version : 1.7.2
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.7.1'
+$ScriptVersion = '1.7.2'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -103,6 +103,9 @@ $Strings = @{
         PickHeaderCp  = 'Which Copilot items may be removed?'
         PickHeaderOd  = 'Which OneDrive installations may be removed?'
         ViewHint      = 'Right arrow or [V] shows what was found on the highlighted row'
+        EscSkip       = 'Esc skips this wait'
+        StSkippedWait = 'Still running - skipped, check it after the reboot'
+        StTimedOut    = 'Timed out - still running in the background'
         WarnHp        = 'Careful: HP Wolf Security is security software. Check company policy first.'
         StManual      = 'No silent uninstall - remove manually'
         StStillThere  = 'Reported OK but still installed - reboot and retry'
@@ -192,6 +195,9 @@ $Strings = @{
         PickHeaderCp  = 'Welke Copilot-items mogen weg?'
         PickHeaderOd  = 'Welke OneDrive-installaties mogen weg?'
         ViewHint      = 'Pijltje rechts of [V] toont wat er gevonden is op de gemarkeerde regel'
+        EscSkip       = 'Esc slaat dit wachten over'
+        StSkippedWait = 'Draait nog - overgeslagen, check na de herstart'
+        StTimedOut    = 'Time-out - draait nog op de achtergrond'
         WarnHp        = 'Opgelet: HP Wolf Security is beveiligingssoftware. Check eerst het bedrijfsbeleid.'
         StManual      = 'Geen stille uninstall - manueel verwijderen'
         StStillThere  = 'Meldde OK maar staat er nog - herstart en run opnieuw'
@@ -281,6 +287,9 @@ $Strings = @{
         PickHeaderCp  = 'Quels elements Copilot peuvent etre supprimes ?'
         PickHeaderOd  = 'Quelles installations OneDrive peuvent etre supprimees ?'
         ViewHint      = 'Fleche droite ou [V] affiche les elements de la ligne active'
+        EscSkip       = 'Echap passe cette attente'
+        StSkippedWait = 'Toujours en cours - ignore, verifiez apres le redemarrage'
+        StTimedOut    = 'Delai depasse - toujours en cours en arriere-plan'
         WarnHp        = 'Attention : HP Wolf Security est un logiciel de securite. Verifiez la politique.'
         StManual      = 'Pas de desinstallation silencieuse - a faire manuellement'
         StStillThere  = 'OK signale mais toujours installe - redemarrez et relancez'
@@ -300,6 +309,7 @@ $Sel = @{ All = $false; Office = $false; Copilot = $false; OneDrive = $false; Hp
 $Script:Results      = @()
 $Script:RebootNeeded = $false
 $Script:HpStuck      = $false
+$Script:WaitAborted  = $false
 
 # --------------------------------------------------------------- Detection --
 
@@ -472,21 +482,78 @@ function Get-ExitCodeText {
     }
 }
 
+function Disable-QuickEdit {
+    # With QuickEdit on (the Windows default), a stray click puts the console
+    # into selection mode and the NEXT Write-Host blocks until a key is
+    # pressed. The script freezes mid-timer and "resumes" when you hit Enter -
+    # it was never stuck, just waiting on the console. Turning QuickEdit off
+    # for this console removes the trap entirely.
+    try {
+        if (-not ('Win32.ConsoleMode' -as [type])) {
+            Add-Type -Namespace Win32 -Name ConsoleMode -MemberDefinition @'
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern IntPtr GetStdHandle(int nStdHandle);
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+'@
+        }
+
+        $Handle = [Win32.ConsoleMode]::GetStdHandle(-10)   # STD_INPUT_HANDLE
+        $Mode   = 0
+        if (-not [Win32.ConsoleMode]::GetConsoleMode($Handle, [ref]$Mode)) { return }
+
+        $New = $Mode -bor 0x0080                            # ENABLE_EXTENDED_FLAGS
+        if ($New -band 0x0040) { $New = $New - 0x0040 }     # clear ENABLE_QUICK_EDIT_MODE
+
+        [void][Win32.ConsoleMode]::SetConsoleMode($Handle, [uint32]$New)
+    }
+    catch {
+        # Not a real console (ISE, redirected output) - nothing to disarm
+    }
+}
+
+function Test-EscPressed {
+    # Non-blocking: lets a long wait be abandoned without killing the script
+    try {
+        while ([Console]::KeyAvailable) {
+            if ([Console]::ReadKey($true).Key -eq 'Escape') { return $true }
+        }
+    }
+    catch { }
+    return $false
+}
+
 function Wait-WithProgress {
-    param([System.Diagnostics.Process]$Process)
+    param(
+        [System.Diagnostics.Process]$Process,
+        [int]$TimeoutMinutes = 120
+    )
+
+    $Script:WaitAborted = $false
 
     $Watch  = [System.Diagnostics.Stopwatch]::StartNew()
     $Frames = @('|', '/', '-', '\')
     $f = 0
 
     while (-not $Process.HasExited) {
+        if (Test-EscPressed) {
+            $Script:WaitAborted = 'skipped'
+            break
+        }
+        if ($Watch.Elapsed.TotalMinutes -ge $TimeoutMinutes) {
+            $Script:WaitAborted = 'timeout'
+            break
+        }
+
         Write-Host ($T.Busy -f $Frames[$f % $Frames.Count], $Watch.Elapsed) `
             -NoNewline -ForegroundColor DarkGray
         Start-Sleep -Milliseconds 250
         $f++
     }
     $Watch.Stop()
-    Write-Host ("`r" + (' ' * 64) + "`r") -NoNewline
+    Write-Host ("`r" + (' ' * 70) + "`r") -NoNewline
     return $Watch.Elapsed
 }
 
@@ -532,6 +599,14 @@ function Remove-OfficeTargets {
         try {
             $Process = Start-Process -FilePath $Exe -ArgumentList $ArgList -PassThru -NoNewWindow
             $Elapsed = Wait-WithProgress -Process $Process
+
+            if ($Script:WaitAborted) {
+                $Status = if ($Script:WaitAborted -eq 'timeout') { $T.StTimedOut } else { $T.StSkippedWait }
+                $Script:RebootNeeded = $true
+                Write-Host "        $Status" -ForegroundColor Yellow
+                Add-Result 'Office' $Name $Status
+                continue
+            }
 
             $Code   = $Process.ExitCode
             $Status = Get-ExitCodeText -Code $Code
@@ -670,19 +745,23 @@ function Wait-UntilGone {
     while ($Watch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
         if (-not (Test-StillInstalled -DisplayName $DisplayName)) {
             $Watch.Stop()
-            Write-Host ("`r" + (' ' * 64) + "`r") -NoNewline
+            Write-Host ("`r" + (' ' * 70) + "`r") -NoNewline
             return $true
         }
 
-        Write-Host ("`r        {0} {1}  {2:mm\:ss} " -f `
-            $Frames[$f % $Frames.Count], $T.Verifying, $Watch.Elapsed) `
+        if (Test-EscPressed) { break }
+
+        Write-Host ("`r        {0} {1}  {2:mm\:ss}   ({3}) " -f `
+            $Frames[$f % $Frames.Count], $T.Verifying, $Watch.Elapsed, $T.EscSkip) `
             -NoNewline -ForegroundColor DarkGray
-        Start-Sleep -Milliseconds 500
+
+        # One second between polls: each check walks both uninstall hives
+        Start-Sleep -Milliseconds 1000
         $f++
     }
 
     $Watch.Stop()
-    Write-Host ("`r" + (' ' * 64) + "`r") -NoNewline
+    Write-Host ("`r" + (' ' * 70) + "`r") -NoNewline
     return $false
 }
 
@@ -747,6 +826,15 @@ function Remove-HpTargets {
 
             $Elapsed = Wait-WithProgress -Process $Process
 
+            if ($Script:WaitAborted) {
+                $Status = if ($Script:WaitAborted -eq 'timeout') { $T.StTimedOut } else { $T.StSkippedWait }
+                $Script:HpStuck      = $true
+                $Script:RebootNeeded = $true
+                Write-Host "        $Status" -ForegroundColor Yellow
+                Add-Result 'HP' $Name $Status
+                continue
+            }
+
             $Code = $Process.ExitCode
             if ($Code -in 1641, 3010) { $Script:RebootNeeded = $true }
 
@@ -800,6 +888,14 @@ function Remove-OneDriveTargets {
         try {
             $Process = Start-Process -FilePath $Target.Path -ArgumentList '/uninstall' -PassThru -NoNewWindow
             $Elapsed = Wait-WithProgress -Process $Process
+
+            if ($Script:WaitAborted) {
+                $Status = if ($Script:WaitAborted -eq 'timeout') { $T.StTimedOut } else { $T.StSkippedWait }
+                $Script:RebootNeeded = $true
+                Write-Host "        $Status" -ForegroundColor Yellow
+                Add-Result 'OneDrive' (Split-Path $Target.Path -Leaf) $Status
+                continue
+            }
 
             $Code   = $Process.ExitCode
             $Status = Get-ExitCodeText -Code $Code
@@ -1073,6 +1169,7 @@ function Open-RowPicker {
 
 # ------------------------------------------------------------------- Main ---
 
+Disable-QuickEdit
 Show-Banner
 Invoke-Scan
 
