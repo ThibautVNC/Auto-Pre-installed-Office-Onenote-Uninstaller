@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.7.2
+        Version : 1.8
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.7.2'
+$ScriptVersion = '1.8'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -104,6 +104,10 @@ $Strings = @{
         PickHeaderOd  = 'Which OneDrive installations may be removed?'
         ViewHint      = 'Right arrow or [V] shows what was found on the highlighted row'
         EscSkip       = 'Esc skips this wait'
+        TagLicensed   = '[licensed - not ticked by default]'
+        PickHintOff   = 'Licensed installs start unticked. Tick one only if you really want it gone.'
+        WarnLicensed  = 'WARNING: a LICENSED Microsoft 365 install is ticked for removal:'
+        WarnLicensed2 = 'This is not OEM bloatware. Make sure you can reinstall and reactivate it.'
         StSkippedWait = 'Still running - skipped, check it after the reboot'
         StTimedOut    = 'Timed out - still running in the background'
         WarnHp        = 'Careful: HP Wolf Security is security software. Check company policy first.'
@@ -196,6 +200,10 @@ $Strings = @{
         PickHeaderOd  = 'Welke OneDrive-installaties mogen weg?'
         ViewHint      = 'Pijltje rechts of [V] toont wat er gevonden is op de gemarkeerde regel'
         EscSkip       = 'Esc slaat dit wachten over'
+        TagLicensed   = '[licensed - standaard niet aangevinkt]'
+        PickHintOff   = 'Licensed installaties starten uitgevinkt. Vink enkel aan als je ze echt weg wil.'
+        WarnLicensed  = 'LET OP: een LICENSED Microsoft 365-installatie staat aangevinkt:'
+        WarnLicensed2 = 'Dit is geen OEM-bloatware. Zorg dat je ze opnieuw kan installeren en activeren.'
         StSkippedWait = 'Draait nog - overgeslagen, check na de herstart'
         StTimedOut    = 'Time-out - draait nog op de achtergrond'
         WarnHp        = 'Opgelet: HP Wolf Security is beveiligingssoftware. Check eerst het bedrijfsbeleid.'
@@ -288,6 +296,10 @@ $Strings = @{
         PickHeaderOd  = 'Quelles installations OneDrive peuvent etre supprimees ?'
         ViewHint      = 'Fleche droite ou [V] affiche les elements de la ligne active'
         EscSkip       = 'Echap passe cette attente'
+        TagLicensed   = '[sous licence - non coche par defaut]'
+        PickHintOff   = 'Les installations sous licence sont decochees. Ne cochez que si vous le voulez vraiment.'
+        WarnLicensed  = 'ATTENTION : une installation Microsoft 365 SOUS LICENCE est cochee :'
+        WarnLicensed2 = 'Ce n est pas du bloatware OEM. Assurez-vous de pouvoir la reinstaller et reactiver.'
         StSkippedWait = 'Toujours en cours - ignore, verifiez apres le redemarrage'
         StTimedOut    = 'Delai depasse - toujours en cours en arriere-plan'
         WarnHp        = 'Attention : HP Wolf Security est un logiciel de securite. Verifiez la politique.'
@@ -314,12 +326,32 @@ $Script:WaitAborted  = $false
 # --------------------------------------------------------------- Detection --
 
 function Get-OfficeTargets {
+    # Display names are localised, so matching on English words like
+    # "Apps for enterprise" misses most of them: the same product reads
+    # "Microsoft 365-apps voor ondernemingen", "para Grandes Empresas",
+    # "-appar for foretag"... What every Click-to-Run product DOES share is
+    # an UninstallString that runs OfficeClickToRun.exe, so that is the gate.
+    $OemPattern = '^(Microsoft 365|Microsoft OneNote) - '
+
     Get-ChildItem -Path `
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', `
         'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall' `
         -ErrorAction SilentlyContinue |
         Get-ItemProperty |
-        Where-Object { $_.DisplayName -match '^(Microsoft 365|Microsoft OneNote) - ' }
+        Where-Object {
+            $_.DisplayName -match $OemPattern -or
+            ($_.DisplayName -match '^Microsoft (365|OneNote)' -and
+             $_.UninstallString -match 'OfficeClickToRun')
+        } |
+        ForEach-Object {
+            # Anything that is not the bare OEM "Microsoft 365 - xx-xx" form is
+            # treated as a licensed install: detected and listed, never ticked
+            # by default.
+            $_ | Add-Member -NotePropertyName 'Licensed' `
+                            -NotePropertyValue (-not ($_.DisplayName -match $OemPattern)) `
+                            -PassThru -Force
+        } |
+        Sort-Object Licensed, DisplayName
 }
 
 function Get-CopilotTargets {
@@ -349,8 +381,10 @@ function Invoke-Scan {
 
     # Every detected Office item is ticked by default; the picker lets you
     # untick individual language SKUs you want to keep.
+    # OEM preinstalls start ticked; licensed installs start unticked, so
+    # "Everything below" can never take out a paid deployment by accident.
     $Script:OfficePick = @()
-    foreach ($o in $Script:Office) { $Script:OfficePick += $true }
+    foreach ($o in $Script:Office) { $Script:OfficePick += (-not $o.Licensed) }
 
     Write-Host '  ok' -ForegroundColor DarkGray
 
@@ -1074,6 +1108,9 @@ function Select-Items {
         Show-Banner
         Write-Host "  $Header" -ForegroundColor White
         Write-Host "  $($T.PickHint)" -ForegroundColor DarkGray
+        if ($Items | Where-Object { $_.PSObject.Properties['Licensed'] -and $_.Licensed }) {
+            Write-Host "  $($T.PickHintOff)" -ForegroundColor Yellow
+        }
         Write-Host ''
 
         for ($i = 0; $i -lt $Items.Count; $i++) {
@@ -1149,7 +1186,7 @@ function Get-RowPicker {
     param([int]$Row)
 
     switch ($Row) {
-        1 { return @{ Items = $Script:Office;   Picks = $Script:OfficePick;   Header = $T.PickHeader;   NameOf = { param($i) $i.DisplayName } } }
+        1 { return @{ Items = $Script:Office;   Picks = $Script:OfficePick;   Header = $T.PickHeader;   NameOf = { param($i) if ($i.Licensed) { "$($i.DisplayName)   $($T.TagLicensed)" } else { $i.DisplayName } } } }
         2 { return @{ Items = $Script:Copilot;  Picks = $Script:CopilotPick;  Header = $T.PickHeaderCp; NameOf = { param($i) "$($i.Name)  ($($i.Kind))" } } }
         3 { return @{ Items = $Script:OneDrive; Picks = $Script:OneDrivePick; Header = $T.PickHeaderOd; NameOf = { param($i) $i.Path } } }
         4 { return @{ Items = $Script:Hp;       Picks = $Script:HpPick;       Header = $T.PickHeaderHp; NameOf = { param($i) $i.DisplayName } } }
@@ -1303,6 +1340,16 @@ do {
             }
             if ($DoHp -and ($HpToRemove | Where-Object { $_.DisplayName -match 'Wolf Security|Sure Click|Sure Sense|Client Security' })) {
                 Write-Host "  $($T.WarnHp)" -ForegroundColor Yellow
+                Write-Host ''
+            }
+
+            $LicensedTicked = @($OfficeToRemove | Where-Object { $_.Licensed })
+            if ($DoOffice -and $LicensedTicked.Count -gt 0) {
+                Write-Host "  $($T.WarnLicensed)" -ForegroundColor Red
+                foreach ($l in $LicensedTicked) {
+                    Write-Host "    - $($l.DisplayName)" -ForegroundColor Red
+                }
+                Write-Host "  $($T.WarnLicensed2)" -ForegroundColor Yellow
                 Write-Host ''
             }
 

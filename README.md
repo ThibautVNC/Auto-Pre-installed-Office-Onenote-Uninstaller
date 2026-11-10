@@ -24,7 +24,9 @@ Each component is a separate module. Pick one, pick two, or take the lot.
 
 Scans both the 64-bit and 32-bit uninstall registry hives for Click-to-Run products whose display name starts with `Microsoft 365 - ` or `Microsoft OneNote - `, then calls each package's own `UninstallString` with `displaylevel=False` so the removal runs silently.
 
-**The match pattern is deliberately narrow, and you should think twice before widening it.** A licensed volume installation shows up as `Microsoft 365 Apps for enterprise - en-us`, which does *not* match `Microsoft 365 - ` because of the words in between. That is the whole point: run this on a machine that already has your paid deployment and it will correctly find nothing. Broaden the pattern to something like `Microsoft 365*` and it will happily uninstall the licensed product instead.
+**Licensed installs are detected, but never ticked by default.** A volume deployment shows up as `Microsoft 365 Apps for enterprise - en-us` and is not OEM bloatware. Since v1.8 those are listed alongside the rest, marked `[licensed]` and left unticked, so "Everything below" can never take out a paid deployment. To remove one anyway — a stale image with eight language SKUs, say — open the item view and tick it yourself. Doing so triggers a separate red warning at the confirmation step that names each licensed item.
+
+**Detection does not match on English product names.** The same product reads `Microsoft 365-apps voor ondernemingen`, `Microsoft 365 para Grandes Empresas`, `Microsoft 365 -sovellukset suuryrityksille` depending on the SKU's language, so a pattern built around the words "Apps for enterprise" would miss most of them. What every Click-to-Run product does share is an `UninstallString` that runs `OfficeClickToRun.exe`, and that is the gate the scan uses.
 
 MSI-based Office installations use a different naming pattern and are left alone for the same reason.
 
@@ -240,6 +242,12 @@ Anything else is printed with its raw code so you can look it up.
 ---
 
 ## Changelog
+
+### v1.8
+
+- **Licensed Microsoft 365 installs are now detected and removable.** They are listed with a `[licensed]` tag and start unticked; tick one in the item view to remove it, and the confirmation step warns about it by name.
+- Detection switched from product-name matching to the `OfficeClickToRun.exe` marker in the uninstall string, so localised SKUs (`-apps voor ondernemingen`, `para Grandes Empresas`, `-appar för företag`, …) are found too.
+- The MSI entries named *Office 16 Click-to-Run Localization/Extensibility Component* are deliberately ignored: they belong to the Click-to-Run install and go with it.
 
 ### v1.7.2
 
