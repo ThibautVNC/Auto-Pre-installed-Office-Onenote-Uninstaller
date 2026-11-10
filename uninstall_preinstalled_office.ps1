@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.8
+        Version : 1.8.2
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.8'
+$ScriptVersion = '1.8.2'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -94,7 +94,8 @@ $Strings = @{
         PickBack      = '[0] Back'
         PickHint2     = 'Up/Down to move, Space to tick'
         SelCount      = '({0} ticked)'
-        NoneTicked    = 'No items are ticked.'
+        NoneTicked    = 'Nothing is ticked. Open a list with the right arrow and pick what may go.'
+        RowEmptyHint  = '{0} is ticked, but none of its {1} items are - open the list to pick.'
         OptHp         = 'HP bloatware'
         ScanHp        = 'HP software'
         SecHp         = '--- HP bloatware ---'
@@ -104,8 +105,8 @@ $Strings = @{
         PickHeaderOd  = 'Which OneDrive installations may be removed?'
         ViewHint      = 'Right arrow or [V] shows what was found on the highlighted row'
         EscSkip       = 'Esc skips this wait'
-        TagLicensed   = '[licensed - not ticked by default]'
-        PickHintOff   = 'Licensed installs start unticked. Tick one only if you really want it gone.'
+        TagLicensed   = '[licensed]'
+        PickHintOff   = 'Items tagged [licensed] are not OEM bloatware - untick what must stay.'
         WarnLicensed  = 'WARNING: a LICENSED Microsoft 365 install is ticked for removal:'
         WarnLicensed2 = 'This is not OEM bloatware. Make sure you can reinstall and reactivate it.'
         StSkippedWait = 'Still running - skipped, check it after the reboot'
@@ -190,7 +191,8 @@ $Strings = @{
         PickBack      = '[0] Terug'
         PickHint2     = 'Pijltjes om te navigeren, spatie om aan te vinken'
         SelCount      = '({0} aangevinkt)'
-        NoneTicked    = 'Er zijn geen items aangevinkt.'
+        NoneTicked    = 'Niets aangevinkt. Open een lijst met pijltje rechts en kies wat weg mag.'
+        RowEmptyHint  = '{0} staat aan, maar geen van de {1} items - open de lijst om te kiezen.'
         OptHp         = 'HP bloatware'
         ScanHp        = 'HP software'
         SecHp         = '--- HP bloatware ---'
@@ -200,8 +202,8 @@ $Strings = @{
         PickHeaderOd  = 'Welke OneDrive-installaties mogen weg?'
         ViewHint      = 'Pijltje rechts of [V] toont wat er gevonden is op de gemarkeerde regel'
         EscSkip       = 'Esc slaat dit wachten over'
-        TagLicensed   = '[licensed - standaard niet aangevinkt]'
-        PickHintOff   = 'Licensed installaties starten uitgevinkt. Vink enkel aan als je ze echt weg wil.'
+        TagLicensed   = '[licensed]'
+        PickHintOff   = 'Items met [licensed] zijn geen OEM-bloatware - vink uit wat moet blijven.'
         WarnLicensed  = 'LET OP: een LICENSED Microsoft 365-installatie staat aangevinkt:'
         WarnLicensed2 = 'Dit is geen OEM-bloatware. Zorg dat je ze opnieuw kan installeren en activeren.'
         StSkippedWait = 'Draait nog - overgeslagen, check na de herstart'
@@ -286,7 +288,8 @@ $Strings = @{
         PickBack      = '[0] Retour'
         PickHint2     = 'Fleches pour naviguer, Espace pour cocher'
         SelCount      = '({0} coche(s))'
-        NoneTicked    = 'Aucun element n est coche.'
+        NoneTicked    = 'Rien n est coche. Ouvrez une liste avec la fleche droite et choisissez.'
+        RowEmptyHint  = '{0} est coche, mais aucun de ses {1} elements - ouvrez la liste.'
         OptHp         = 'Bloatware HP'
         ScanHp        = 'Logiciels HP'
         SecHp         = '--- Bloatware HP ---'
@@ -296,8 +299,8 @@ $Strings = @{
         PickHeaderOd  = 'Quelles installations OneDrive peuvent etre supprimees ?'
         ViewHint      = 'Fleche droite ou [V] affiche les elements de la ligne active'
         EscSkip       = 'Echap passe cette attente'
-        TagLicensed   = '[sous licence - non coche par defaut]'
-        PickHintOff   = 'Les installations sous licence sont decochees. Ne cochez que si vous le voulez vraiment.'
+        TagLicensed   = '[sous licence]'
+        PickHintOff   = 'Les elements [sous licence] ne sont pas du bloatware OEM - decochez ce qui doit rester.'
         WarnLicensed  = 'ATTENTION : une installation Microsoft 365 SOUS LICENCE est cochee :'
         WarnLicensed2 = 'Ce n est pas du bloatware OEM. Assurez-vous de pouvoir la reinstaller et reactiver.'
         StSkippedWait = 'Toujours en cours - ignore, verifiez apres le redemarrage'
@@ -381,10 +384,11 @@ function Invoke-Scan {
 
     # Every detected Office item is ticked by default; the picker lets you
     # untick individual language SKUs you want to keep.
-    # OEM preinstalls start ticked; licensed installs start unticked, so
-    # "Everything below" can never take out a paid deployment by accident.
+    # Everything found starts ticked, licensed installs included: ticking the
+    # row means "all of it". Licensed items are tagged in the item view so they
+    # can be unticked one by one, and they raise a warning before anything runs.
     $Script:OfficePick = @()
-    foreach ($o in $Script:Office) { $Script:OfficePick += (-not $o.Licensed) }
+    foreach ($o in $Script:Office) { $Script:OfficePick += $true }
 
     Write-Host '  ok' -ForegroundColor DarkGray
 
@@ -1052,6 +1056,36 @@ function Move-Cursor {
     return $Current
 }
 
+function Get-RowChecked {
+    param([int]$Row)
+
+    switch ($Row) {
+        0 { return [bool]$Sel.All }
+        1 { return [bool]$Sel.Office }
+        2 { return [bool]$Sel.Copilot }
+        3 { return [bool]$Sel.OneDrive }
+        4 { return [bool]$Sel.Hp }
+    }
+    return $false
+}
+
+function Get-TickedCount {
+    param([array]$Items, [array]$Picks)
+
+    $n = 0
+    for ($i = 0; $i -lt $Items.Count; $i++) { if ($Picks[$i]) { $n++ } }
+    return $n
+}
+
+function Test-RowEmptyTicked {
+    # True when a row holds items but none of them are ticked
+    param([int]$Row)
+
+    $Cfg = Get-RowPicker -Row $Row
+    if (-not $Cfg -or $Cfg.Items.Count -eq 0) { return $false }
+    return ((Get-TickedCount -Items $Cfg.Items -Picks $Cfg.Picks) -eq 0)
+}
+
 function Switch-Row {
     param([int]$Row)
 
@@ -1063,6 +1097,12 @@ function Switch-Row {
         2 { $Sel.Copilot  = -not $Sel.Copilot }
         3 { $Sel.OneDrive = -not $Sel.OneDrive }
         4 { $Sel.Hp       = -not $Sel.Hp }
+    }
+
+    # Ticking a component whose items are all unticked (all-licensed Office, or
+    # a list the user cleared) would be a dead end at start, so ask right away.
+    if ($Row -ge 1 -and (Get-RowChecked -Row $Row) -and (Test-RowEmptyTicked -Row $Row)) {
+        Open-RowPicker -Row $Row
     }
 }
 
@@ -1242,6 +1282,14 @@ do {
 
     if ($Sel.All)           { Write-Host "   $($T.HintAll)"   -ForegroundColor DarkGray }
     elseif ($ItemsSelected) { Write-Host "   $($T.HintItems)" -ForegroundColor DarkGray }
+
+    foreach ($r in 1..4) {
+        if ((Get-RowChecked -Row $r) -and (Test-RowEmptyTicked -Row $r)) {
+            $Cfg = Get-RowPicker -Row $r
+            $Lbl = switch ($r) { 1 { $T.OptOffice } 2 { $T.OptCopilot } 3 { $T.OptOneDrive } 4 { $T.OptHp } }
+            Write-Host ("   " + ($T.RowEmptyHint -f $Lbl, $Cfg.Items.Count)) -ForegroundColor Yellow
+        }
+    }
     Write-Host ''
 
     Write-Host "  $($T.MenuStart)"  -ForegroundColor White
@@ -1308,18 +1356,8 @@ do {
             $OneDriveToRemove = @(Get-Picked -Items $OneDrive -Picks $Script:OneDrivePick)
             $HpToRemove       = @(Get-Picked -Items $Hp       -Picks $Script:HpPick)
 
-            $Emptied = ($DoOffice   -and $Office.Count   -gt 0 -and $OfficeToRemove.Count   -eq 0) -or
-                       ($DoCopilot  -and $Copilot.Count  -gt 0 -and $CopilotToRemove.Count  -eq 0) -or
-                       ($DoOneDrive -and $OneDrive.Count -gt 0 -and $OneDriveToRemove.Count -eq 0) -or
-                       ($DoHp       -and $Hp.Count       -gt 0 -and $HpToRemove.Count       -eq 0)
-
-            if ($Emptied) {
-                Write-Host ''
-                Write-Host "  $($T.NoneTicked)" -ForegroundColor Yellow
-                Start-Sleep -Seconds 2
-                continue
-            }
-
+            # A selected component with nothing ticked simply contributes
+            # nothing; only a zero total is worth stopping for.
             $Planned = 0
             if ($DoOffice)   { $Planned += $OfficeToRemove.Count }
             if ($DoCopilot)  { $Planned += $CopilotToRemove.Count }
@@ -1327,9 +1365,20 @@ do {
             if ($DoHp)       { $Planned += $HpToRemove.Count }
 
             if ($Planned -eq 0) {
+                $AnyFound = ($DoOffice   -and $Office.Count   -gt 0) -or
+                            ($DoCopilot  -and $Copilot.Count  -gt 0) -or
+                            ($DoOneDrive -and $OneDrive.Count -gt 0) -or
+                            ($DoHp       -and $Hp.Count       -gt 0)
+
                 Write-Host ''
-                Write-Host "  $($T.NothingFound)" -ForegroundColor Yellow
-                Start-Sleep -Seconds 2
+                if ($AnyFound) {
+                    # Things were detected, they are just all unticked
+                    Write-Host "  $($T.NoneTicked)" -ForegroundColor Yellow
+                }
+                else {
+                    Write-Host "  $($T.NothingFound)" -ForegroundColor Yellow
+                }
+                Start-Sleep -Seconds 3
                 continue
             }
 

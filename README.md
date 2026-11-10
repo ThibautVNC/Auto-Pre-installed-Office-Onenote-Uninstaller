@@ -24,7 +24,7 @@ Each component is a separate module. Pick one, pick two, or take the lot.
 
 Scans both the 64-bit and 32-bit uninstall registry hives for Click-to-Run products whose display name starts with `Microsoft 365 - ` or `Microsoft OneNote - `, then calls each package's own `UninstallString` with `displaylevel=False` so the removal runs silently.
 
-**Licensed installs are detected, but never ticked by default.** A volume deployment shows up as `Microsoft 365 Apps for enterprise - en-us` and is not OEM bloatware. Since v1.8 those are listed alongside the rest, marked `[licensed]` and left unticked, so "Everything below" can never take out a paid deployment. To remove one anyway — a stale image with eight language SKUs, say — open the item view and tick it yourself. Doing so triggers a separate red warning at the confirmation step that names each licensed item.
+**Licensed installs are detected and included.** A volume deployment shows up as `Microsoft 365 Apps for enterprise - en-us`. Ticking the component row selects everything found, licensed installs included — on a stale image that is usually exactly what you want. Each one is tagged `[licensed]` in the item view so you can untick what must stay, and if any is still ticked at the confirmation step you get a red warning naming it one by one.
 
 **Detection does not match on English product names.** The same product reads `Microsoft 365-apps voor ondernemingen`, `Microsoft 365 para Grandes Empresas`, `Microsoft 365 -sovellukset suuryrityksille` depending on the SKU's language, so a pattern built around the words "Apps for enterprise" would miss most of them. What every Click-to-Run product does share is an `UninstallString` that runs `OfficeClickToRun.exe`, and that is the gate the scan uses.
 
@@ -242,6 +242,16 @@ Anything else is printed with its raw code so you can look it up.
 ---
 
 ## Changelog
+
+### v1.8.2
+
+- Ticking the Microsoft 365 / OneNote row now selects **everything found**, licensed installs included. They stay tagged `[licensed]` in the item view for unticking by hand, and the red warning before removal is unchanged.
+
+### v1.8.1
+
+- **Fixed:** ticking a component whose items were all unticked — Office on a machine where every install is licensed — blocked the run with "nothing is ticked" and no way forward. A selected component with nothing ticked now simply contributes nothing, and only a zero total stops the run.
+- **Fixed:** the same guard wrongly blocked "Everything below" even when another component had work to do.
+- Ticking such a component opens its item list straight away, and the menu names the row if it is left in that state.
 
 ### v1.8
 
