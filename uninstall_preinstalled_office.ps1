@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.8.2
+        Version : 1.9
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.8.2'
+$ScriptVersion = '1.9'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -35,9 +35,9 @@ $Strings = @{
         NotFound      = 'not present'
         Locked        = 'locked'
         MenuStart     = '[1] Start removal'
-        MenuRescan    = '[4] Rescan'
-        MenuLang      = '[5] Language'
-        MenuReboot    = '[6] Reboot now'
+        MenuRescan    = '[2] Rescan'
+        MenuLang      = '[3] Language'
+        MenuReboot    = '[4] Reboot now'
         MenuExit      = '[0] Exit'
         ConfirmReboot = '  Reboot this machine now? (Y/N)'
         Rebooting     = 'Rebooting in 5 seconds - close this window to cancel.'
@@ -46,11 +46,10 @@ $Strings = @{
         WarnShell     = 'Heads up: the desktop and taskbar will disappear during this step. That is normal - Explorer is restarted afterwards.'
         RebootAsk     = '  Reboot now to finish up? (Y/N)'
         RunDone       = 'Run finished.'
-        NavHint       = 'Up/Down to move, Space to tick'
-        NavHintKeys   = 'Type A / O / C / D to tick, digits for the menu'
+        NavHint       = 'Up/Down move   Right/Enter unfold a group   Left fold   Space ticks'
+        TagKeep       = '[not bloatware - kept]'
+        NavHintKeys   = 'Type A / O / C / D / H to tick a group, digits for the menu'
         Choice        = '  Choice'
-        HintAll       = 'Deselect [1] to pick items individually.'
-        HintItems     = 'Deselect all items to unlock [1] Everything below.'
         NothingSel    = 'Nothing selected.'
         NothingFound  = 'Nothing found to remove for your selection.'
         Confirm       = '  Remove the selected components? (Y/N)'
@@ -86,27 +85,13 @@ $Strings = @{
         ScanOffice    = 'Office / OneNote'
         ScanCopilot   = 'Copilot (this takes a few seconds)'
         ScanOneDrive  = 'OneDrive'
-        MenuPick      = '[2] Review / choose Office items'
-        PickHeader    = 'Which Office / OneNote items may be removed?'
-        PickHint      = 'Untick a language to keep it installed.'
-        PickAll       = '[A] Tick all'
-        PickNone      = '[N] Tick none'
-        PickBack      = '[0] Back'
-        PickHint2     = 'Up/Down to move, Space to tick'
         SelCount      = '({0} ticked)'
         NoneTicked    = 'Nothing is ticked. Open a list with the right arrow and pick what may go.'
-        RowEmptyHint  = '{0} is ticked, but none of its {1} items are - open the list to pick.'
         OptHp         = 'HP bloatware'
         ScanHp        = 'HP software'
         SecHp         = '--- HP bloatware ---'
-        MenuPickHp    = '[3] Review / choose HP items'
-        PickHeaderHp  = 'Which HP items may be removed?'
-        PickHeaderCp  = 'Which Copilot items may be removed?'
-        PickHeaderOd  = 'Which OneDrive installations may be removed?'
-        ViewHint      = 'Right arrow or [V] shows what was found on the highlighted row'
         EscSkip       = 'Esc skips this wait'
         TagLicensed   = '[licensed]'
-        PickHintOff   = 'Items tagged [licensed] are not OEM bloatware - untick what must stay.'
         WarnLicensed  = 'WARNING: a LICENSED Microsoft 365 install is ticked for removal:'
         WarnLicensed2 = 'This is not OEM bloatware. Make sure you can reinstall and reactivate it.'
         StSkippedWait = 'Still running - skipped, check it after the reboot'
@@ -132,9 +117,9 @@ $Strings = @{
         NotFound      = 'niet aanwezig'
         Locked        = 'vergrendeld'
         MenuStart     = '[1] Verwijderen starten'
-        MenuRescan    = '[4] Opnieuw scannen'
-        MenuLang      = '[5] Taal'
-        MenuReboot    = '[6] Nu herstarten'
+        MenuRescan    = '[2] Opnieuw scannen'
+        MenuLang      = '[3] Taal'
+        MenuReboot    = '[4] Nu herstarten'
         MenuExit      = '[0] Afsluiten'
         ConfirmReboot = '  Dit toestel nu herstarten? (J/N)'
         Rebooting     = 'Herstart over 5 seconden - sluit dit venster om te annuleren.'
@@ -143,11 +128,10 @@ $Strings = @{
         WarnShell     = 'Let op: bureaublad en taakbalk verdwijnen tijdens deze stap. Dat is normaal - Verkenner wordt daarna opnieuw gestart.'
         RebootAsk     = '  Nu herstarten om af te ronden? (J/N)'
         RunDone       = 'Run afgerond.'
-        NavHint       = 'Pijltjes om te navigeren, spatie om aan te vinken'
-        NavHintKeys   = 'Typ A / O / C / D om aan te vinken, cijfers voor het menu'
+        NavHint       = 'Op/Neer navigeren   Rechts/Enter openklappen   Links dichtklappen   Spatie vinkt aan'
+        TagKeep       = '[geen bloatware - blijft]'
+        NavHintKeys   = 'Typ A / O / C / D / H voor een groep, cijfers voor het menu'
         Choice        = '  Keuze'
-        HintAll       = 'Deselecteer [1] om items apart te kiezen.'
-        HintItems     = 'Deselecteer alle items om [1] Alles hieronder vrij te geven.'
         NothingSel    = 'Niets geselecteerd.'
         NothingFound  = 'Niets gevonden om te verwijderen voor je selectie.'
         Confirm       = '  Geselecteerde onderdelen verwijderen? (J/N)'
@@ -183,27 +167,13 @@ $Strings = @{
         ScanOffice    = 'Office / OneNote'
         ScanCopilot   = 'Copilot (dit duurt enkele seconden)'
         ScanOneDrive  = 'OneDrive'
-        MenuPick      = '[2] Office-items bekijken / kiezen'
-        PickHeader    = 'Welke Office / OneNote items mogen weg?'
-        PickHint      = 'Vink een taal uit om die te behouden.'
-        PickAll       = '[A] Alles aanvinken'
-        PickNone      = '[N] Alles uitvinken'
-        PickBack      = '[0] Terug'
-        PickHint2     = 'Pijltjes om te navigeren, spatie om aan te vinken'
         SelCount      = '({0} aangevinkt)'
         NoneTicked    = 'Niets aangevinkt. Open een lijst met pijltje rechts en kies wat weg mag.'
-        RowEmptyHint  = '{0} staat aan, maar geen van de {1} items - open de lijst om te kiezen.'
         OptHp         = 'HP bloatware'
         ScanHp        = 'HP software'
         SecHp         = '--- HP bloatware ---'
-        MenuPickHp    = '[3] HP-items bekijken / kiezen'
-        PickHeaderHp  = 'Welke HP-items mogen weg?'
-        PickHeaderCp  = 'Welke Copilot-items mogen weg?'
-        PickHeaderOd  = 'Welke OneDrive-installaties mogen weg?'
-        ViewHint      = 'Pijltje rechts of [V] toont wat er gevonden is op de gemarkeerde regel'
         EscSkip       = 'Esc slaat dit wachten over'
         TagLicensed   = '[licensed]'
-        PickHintOff   = 'Items met [licensed] zijn geen OEM-bloatware - vink uit wat moet blijven.'
         WarnLicensed  = 'LET OP: een LICENSED Microsoft 365-installatie staat aangevinkt:'
         WarnLicensed2 = 'Dit is geen OEM-bloatware. Zorg dat je ze opnieuw kan installeren en activeren.'
         StSkippedWait = 'Draait nog - overgeslagen, check na de herstart'
@@ -229,9 +199,9 @@ $Strings = @{
         NotFound      = 'absent'
         Locked        = 'verrouille'
         MenuStart     = '[1] Demarrer la suppression'
-        MenuRescan    = '[4] Analyser a nouveau'
-        MenuLang      = '[5] Langue'
-        MenuReboot    = '[6] Redemarrer maintenant'
+        MenuRescan    = '[2] Analyser a nouveau'
+        MenuLang      = '[3] Langue'
+        MenuReboot    = '[4] Redemarrer maintenant'
         MenuExit      = '[0] Quitter'
         ConfirmReboot = '  Redemarrer cette machine maintenant ? (O/N)'
         Rebooting     = 'Redemarrage dans 5 secondes - fermez cette fenetre pour annuler.'
@@ -240,11 +210,10 @@ $Strings = @{
         WarnShell     = 'Attention : le bureau et la barre des taches vont disparaitre. C est normal - l Explorateur sera relance.'
         RebootAsk     = '  Redemarrer maintenant pour terminer ? (O/N)'
         RunDone       = 'Execution terminee.'
-        NavHint       = 'Fleches pour naviguer, Espace pour cocher'
-        NavHintKeys   = 'Tapez A / O / C / D pour cocher, chiffres pour le menu'
+        NavHint       = 'Haut/Bas naviguer   Droite/Entree deplier   Gauche replier   Espace coche'
+        TagKeep       = '[pas du bloatware - conserve]'
+        NavHintKeys   = 'Tapez A / O / C / D / H pour un groupe, chiffres pour le menu'
         Choice        = '  Choix'
-        HintAll       = 'Deselectionnez [1] pour choisir les elements un par un.'
-        HintItems     = 'Deselectionnez tous les elements pour deverrouiller [1].'
         NothingSel    = 'Rien de selectionne.'
         NothingFound  = 'Rien a supprimer pour votre selection.'
         Confirm       = '  Supprimer les composants selectionnes ? (O/N)'
@@ -280,27 +249,13 @@ $Strings = @{
         ScanOffice    = 'Office / OneNote'
         ScanCopilot   = 'Copilot (quelques secondes)'
         ScanOneDrive  = 'OneDrive'
-        MenuPick      = '[2] Voir / choisir les elements Office'
-        PickHeader    = 'Quels elements Office / OneNote peuvent etre supprimes ?'
-        PickHint      = 'Decochez une langue pour la conserver.'
-        PickAll       = '[A] Tout cocher'
-        PickNone      = '[N] Tout decocher'
-        PickBack      = '[0] Retour'
-        PickHint2     = 'Fleches pour naviguer, Espace pour cocher'
         SelCount      = '({0} coche(s))'
         NoneTicked    = 'Rien n est coche. Ouvrez une liste avec la fleche droite et choisissez.'
-        RowEmptyHint  = '{0} est coche, mais aucun de ses {1} elements - ouvrez la liste.'
         OptHp         = 'Bloatware HP'
         ScanHp        = 'Logiciels HP'
         SecHp         = '--- Bloatware HP ---'
-        MenuPickHp    = '[3] Voir / choisir les elements HP'
-        PickHeaderHp  = 'Quels elements HP peuvent etre supprimes ?'
-        PickHeaderCp  = 'Quels elements Copilot peuvent etre supprimes ?'
-        PickHeaderOd  = 'Quelles installations OneDrive peuvent etre supprimees ?'
-        ViewHint      = 'Fleche droite ou [V] affiche les elements de la ligne active'
         EscSkip       = 'Echap passe cette attente'
         TagLicensed   = '[sous licence]'
-        PickHintOff   = 'Les elements [sous licence] ne sont pas du bloatware OEM - decochez ce qui doit rester.'
         WarnLicensed  = 'ATTENTION : une installation Microsoft 365 SOUS LICENCE est cochee :'
         WarnLicensed2 = 'Ce n est pas du bloatware OEM. Assurez-vous de pouvoir la reinstaller et reactiver.'
         StSkippedWait = 'Toujours en cours - ignore, verifiez apres le redemarrage'
@@ -320,6 +275,9 @@ $Host.UI.RawUI.WindowTitle = $T.WindowTitle
 
 # Selection state
 $Sel = @{ All = $false; Office = $false; Copilot = $false; OneDrive = $false; Hp = $false }
+
+# Which component groups are unfolded in the tree
+$Script:Expanded = @{ 1 = $false; 2 = $false; 3 = $false; 4 = $false }
 
 $Script:Results      = @()
 $Script:RebootNeeded = $false
@@ -412,7 +370,7 @@ function Invoke-Scan {
     $Script:Hp = @(Get-HpTargets)
 
     $Script:HpPick = @()
-    foreach ($h in $Script:Hp) { $Script:HpPick += $true }
+    foreach ($h in $Script:Hp) { $Script:HpPick += (-not $h.Keep) }
 
     Write-Host '  ok' -ForegroundColor DarkGray
 }
@@ -460,6 +418,9 @@ function Get-HpTargets {
                 Quiet       = $_.QuietUninstallString
                 Uninstall   = $_.UninstallString
                 Id          = $null
+                # Support Assistant delivers driver and BIOS updates, so it is
+                # listed but never swept up by ticking the group.
+                Keep        = [bool]($_.DisplayName -match '^HP Support Assistant')
             }
         }
 
@@ -472,6 +433,7 @@ function Get-HpTargets {
                       Quiet       = $null
                       Uninstall   = $null
                       Id          = $_.PackageFullName
+                      Keep        = $false
                   }
               }
 
@@ -486,7 +448,7 @@ function Get-HpTargets {
         return 10
     }
 
-    $Found | Sort-Object @{ Expression = { & $Weight $_.DisplayName } }, DisplayName
+    $Found | Sort-Object Keep, @{ Expression = { & $Weight $_.DisplayName } }, DisplayName
 }
 
 function Get-OneDriveTargets {
@@ -968,6 +930,7 @@ function Read-MenuKey {
                 38 { return 'UP' }
                 40 { return 'DOWN' }
                 39 { return 'RIGHT' }
+                37 { return 'LEFT' }
                 32 { return 'SPACE' }
                 13 { return 'ENTER' }
                 27 { return 'ESC' }
@@ -1002,71 +965,34 @@ function Show-Banner {
     Write-Host ''
 }
 
-function Show-Row {
-    param(
-        [bool]$IsCursor,
-        [bool]$Checked,
-        [bool]$Available,
-        [string]$Label,
-        [string]$Detail
-    )
+function Get-Component {
+    param([int]$Index)
 
-    $Arrow = if ($IsCursor) { '>' } else { ' ' }
-
-    if (-not $Available) {
-        Write-Host ('   {0}  {1}  {2,-26} {3}' -f $Arrow, '[-]', $Label, "($($T.Locked))") `
-            -ForegroundColor DarkGray
-        return
+    switch ($Index) {
+        1 { return @{ Key='Office';   Label=$T.OptOffice;   Items=$Script:Office;   Picks=$Script:OfficePick } }
+        2 { return @{ Key='Copilot';  Label=$T.OptCopilot;  Items=$Script:Copilot;  Picks=$Script:CopilotPick } }
+        3 { return @{ Key='OneDrive'; Label=$T.OptOneDrive; Items=$Script:OneDrive; Picks=$Script:OneDrivePick } }
+        4 { return @{ Key='Hp';       Label=$T.OptHp;       Items=$Script:Hp;       Picks=$Script:HpPick } }
     }
-
-    $Box = if ($Checked) { '[x]' } else { '[ ]' }
-
-    if ($IsCursor) {
-        $Colour = 'Cyan'
-    }
-    elseif ($Checked) {
-        $Colour = 'Green'
-    }
-    else {
-        $Colour = 'Gray'
-    }
-
-    Write-Host ('   {0}  {1}  {2,-26} {3}' -f $Arrow, $Box, $Label, $Detail) -ForegroundColor $Colour
+    return $null
 }
 
-function Get-RowAvailable {
-    param([int]$Row)
+function Get-ItemLabel {
+    param([int]$Comp, $Item)
 
-    $ItemsSelected = $Sel.Office -or $Sel.Copilot -or $Sel.OneDrive -or $Sel.Hp
-
-    if ($Row -eq 0) { return (-not $ItemsSelected) }
-    return (-not $Sel.All)
+    switch ($Comp) {
+        2 { return "$($Item.Name)  ($($Item.Kind))" }
+        3 { return $Item.Path }
+        default { return $Item.DisplayName }
+    }
 }
 
-function Move-Cursor {
-    param([int]$Current, [int]$Delta)
+function Get-ItemTag {
+    param($Item)
 
-    $Row = $Current
-    for ($n = 0; $n -lt 5; $n++) {
-        $Row = $Row + $Delta
-        if ($Row -lt 0) { $Row = 4 }
-        if ($Row -gt 4) { $Row = 0 }
-        if (Get-RowAvailable -Row $Row) { return $Row }
-    }
-    return $Current
-}
-
-function Get-RowChecked {
-    param([int]$Row)
-
-    switch ($Row) {
-        0 { return [bool]$Sel.All }
-        1 { return [bool]$Sel.Office }
-        2 { return [bool]$Sel.Copilot }
-        3 { return [bool]$Sel.OneDrive }
-        4 { return [bool]$Sel.Hp }
-    }
-    return $false
+    if ($Item.PSObject.Properties['Keep']     -and $Item.Keep)     { return $T.TagKeep }
+    if ($Item.PSObject.Properties['Licensed'] -and $Item.Licensed) { return $T.TagLicensed }
+    return ''
 }
 
 function Get-TickedCount {
@@ -1077,51 +1003,168 @@ function Get-TickedCount {
     return $n
 }
 
-function Test-RowEmptyTicked {
-    # True when a row holds items but none of them are ticked
-    param([int]$Row)
+function Get-CompState {
+    # none / partial / all - drives the checkbox glyph
+    param([int]$Comp)
 
-    $Cfg = Get-RowPicker -Row $Row
-    if (-not $Cfg -or $Cfg.Items.Count -eq 0) { return $false }
-    return ((Get-TickedCount -Items $Cfg.Items -Picks $Cfg.Picks) -eq 0)
+    $Cfg = Get-Component -Index $Comp
+    if ($Cfg.Items.Count -eq 0) {
+        return $(if ($Sel[$Cfg.Key]) { 'all' } else { 'none' })
+    }
+
+    $Ticked = Get-TickedCount -Items $Cfg.Items -Picks $Cfg.Picks
+    if ($Ticked -eq 0) { return 'none' }
+
+    # An item flagged Keep is not part of a "full" selection, so a group whose
+    # only unticked entry is HP Support Assistant still counts as fully on.
+    for ($i = 0; $i -lt $Cfg.Items.Count; $i++) {
+        if ((-not $Cfg.Items[$i].Keep) -and (-not $Cfg.Picks[$i])) { return 'partial' }
+    }
+    return 'all'
 }
 
-function Switch-Row {
-    param([int]$Row)
+function Get-CompChecked {
+    param([int]$Comp)
+    return ((Get-CompState -Comp $Comp) -ne 'none')
+}
 
-    if (-not (Get-RowAvailable -Row $Row)) { return }
+function Switch-Comp {
+    param([int]$Comp, [string]$Force = '')
 
-    switch ($Row) {
-        0 { $Sel.All      = -not $Sel.All }
-        1 { $Sel.Office   = -not $Sel.Office }
-        2 { $Sel.Copilot  = -not $Sel.Copilot }
-        3 { $Sel.OneDrive = -not $Sel.OneDrive }
-        4 { $Sel.Hp       = -not $Sel.Hp }
+    $Cfg = Get-Component -Index $Comp
+
+    # A component with nothing found is a plain on/off flag: Copilot still
+    # applies its policy, so it stays tickable.
+    if ($Cfg.Items.Count -eq 0) {
+        $Sel[$Cfg.Key] = switch ($Force) { 'on' { $true } 'off' { $false } default { -not $Sel[$Cfg.Key] } }
+        return
     }
 
-    # Ticking a component whose items are all unticked (all-licensed Office, or
-    # a list the user cleared) would be a dead end at start, so ask right away.
-    if ($Row -ge 1 -and (Get-RowChecked -Row $Row) -and (Test-RowEmptyTicked -Row $Row)) {
-        Open-RowPicker -Row $Row
+    $TurnOn = switch ($Force) {
+        'on'    { $true }
+        'off'   { $false }
+        default { (Get-CompState -Comp $Comp) -eq 'none' }
+    }
+
+    for ($i = 0; $i -lt $Cfg.Items.Count; $i++) {
+        # Ticking the group never sweeps up an item flagged Keep
+        $Cfg.Picks[$i] = $TurnOn -and (-not $Cfg.Items[$i].Keep)
+    }
+    $Sel[$Cfg.Key] = $TurnOn
+}
+
+function Switch-Item {
+    param([int]$Comp, [int]$Index)
+
+    $Cfg = Get-Component -Index $Comp
+    $Cfg.Picks[$Index] = -not $Cfg.Picks[$Index]
+    $Sel[$Cfg.Key]     = ((Get-TickedCount -Items $Cfg.Items -Picks $Cfg.Picks) -gt 0)
+}
+
+function Get-AllState {
+    # A component with nothing found cannot be "on" in any meaningful sense,
+    # so it does not drag the group header into a partial state.
+    $States = @(1..4 |
+        Where-Object { (Get-Component -Index $_).Items.Count -gt 0 } |
+        ForEach-Object { Get-CompState -Comp $_ })
+
+    if ($States.Count -eq 0)                                      { return 'none' }
+    if ($States -notcontains 'all' -and $States -notcontains 'partial') { return 'none' }
+    if ($States -contains 'none' -or $States -contains 'partial') { return 'partial' }
+    return 'all'
+}
+
+function Switch-All {
+    $Target = if ((Get-AllState) -eq 'none') { 'on' } else { 'off' }
+    foreach ($c in 1..4) { Switch-Comp -Comp $c -Force $Target }
+}
+
+function Get-VisibleRows {
+    # The tree, flattened: what the cursor actually walks over
+    $Rows = @()
+    $Rows += @{ Type = 'all' }
+
+    foreach ($c in 1..4) {
+        $Rows += @{ Type = 'comp'; Comp = $c }
+
+        if ($Script:Expanded[$c]) {
+            $Cfg = Get-Component -Index $c
+            for ($i = 0; $i -lt $Cfg.Items.Count; $i++) {
+                $Rows += @{ Type = 'item'; Comp = $c; Index = $i }
+            }
+        }
+    }
+    return $Rows
+}
+
+function Get-Box {
+    param([string]$State)
+
+    switch ($State) {
+        'all'     { return '[x]' }
+        'partial' { return '[~]' }
+        default   { return '[ ]' }
     }
 }
 
-function Select-Language {
-    Show-Banner
-    Write-Host $T.LangHeader -ForegroundColor White
-    Write-Host ''
-    Write-Host '   [1] English'    -ForegroundColor Gray
-    Write-Host '   [2] Nederlands' -ForegroundColor Gray
-    Write-Host '   [3] Francais'   -ForegroundColor Gray
-    Write-Host '   [0] ...'        -ForegroundColor DarkGray
-    Write-Host ''
+function Show-Tree {
+    param([array]$Rows, [int]$Cursor)
 
-    switch (Read-MenuKey) {
-        '1' { return 'EN' }
-        '2' { return 'NL' }
-        '3' { return 'FR' }
-        default { return $script:Lang }
+    for ($r = 0; $r -lt $Rows.Count; $r++) {
+        $Row    = $Rows[$r]
+        $IsHere = ($r -eq $Cursor)
+        $Arrow  = if ($IsHere) { '>' } else { ' ' }
+
+        if ($Row.Type -eq 'all') {
+            $State = Get-AllState
+            $Col   = if ($IsHere) { 'Cyan' } elseif ($State -eq 'none') { 'Gray' } else { 'Green' }
+            Write-Host ('   {0}  {1}  {2}' -f $Arrow, (Get-Box $State), $T.OptAll) -ForegroundColor $Col
+            Write-Host '      ----------------------------------------------------------' -ForegroundColor DarkGray
+            continue
+        }
+
+        if ($Row.Type -eq 'comp') {
+            $Cfg   = Get-Component -Index $Row.Comp
+            $State = Get-CompState -Comp $Row.Comp
+            $Col   = if ($IsHere) { 'Cyan' } elseif ($State -eq 'none') { 'Gray' } else { 'Green' }
+
+            $Chev = '   '
+            if ($Cfg.Items.Count -gt 0) {
+                $Chev = if ($Script:Expanded[$Row.Comp]) { ' v ' } else { ' > ' }
+            }
+
+            Write-Host ('   {0}  {1} {2} {3,-24} {4}' -f `
+                $Arrow, (Get-Box $State), $Chev, $Cfg.Label, `
+                (Get-ComponentDetail -Comp $Row.Comp)) -ForegroundColor $Col
+            continue
+        }
+
+        # item
+        $Cfg  = Get-Component -Index $Row.Comp
+        $Item = $Cfg.Items[$Row.Index]
+        $On   = [bool]$Cfg.Picks[$Row.Index]
+        $Tag  = Get-ItemTag -Item $Item
+
+        $Col = if ($IsHere) { 'Cyan' } elseif ($On) { 'Green' } else { 'DarkGray' }
+        $Txt = '{0}        {1}  {2}' -f $Arrow, $(if ($On) { '[x]' } else { '[ ]' }), (Get-ItemLabel -Comp $Row.Comp -Item $Item)
+        if ($Tag) { $Txt = "$Txt   $Tag" }
+
+        Write-Host ("   $Txt") -ForegroundColor $Col
     }
+}
+
+function Get-ComponentDetail {
+    param([int]$Comp)
+
+    $Cfg = Get-Component -Index $Comp
+    if ($Cfg.Items.Count -eq 0) { return $T.NotFound }
+
+    $Ticked = Get-TickedCount -Items $Cfg.Items -Picks $Cfg.Picks
+    $Text   = $T.FoundCount -f $Cfg.Items.Count
+    if ($Ticked -ne $Cfg.Items.Count) {
+        $Text = "$Text  " + ($T.SelCount -f $Ticked)
+    }
+    return $Text
 }
 
 function Get-Picked {
@@ -1134,115 +1177,23 @@ function Get-Picked {
     $Picked
 }
 
-function Select-Items {
-    param(
-        [array]$Items,
-        [array]$Picks,
-        [string]$Header,
-        [scriptblock]$NameOf
-    )
+function Select-Language {
+    Show-Banner
+    Write-Host $T.LangHeader -ForegroundColor White
+    Write-Host ''
+    Write-Host '   [1] English'    -ForegroundColor Gray
+    Write-Host '   [2] Nederlands' -ForegroundColor Gray
+    Write-Host '   [3] Francais'   -ForegroundColor Gray
+    Write-Host ''
 
-    $Cursor = 0
-
-    do {
-        Show-Banner
-        Write-Host "  $Header" -ForegroundColor White
-        Write-Host "  $($T.PickHint)" -ForegroundColor DarkGray
-        if ($Items | Where-Object { $_.PSObject.Properties['Licensed'] -and $_.Licensed }) {
-            Write-Host "  $($T.PickHintOff)" -ForegroundColor Yellow
-        }
-        Write-Host ''
-
-        for ($i = 0; $i -lt $Items.Count; $i++) {
-            $Arrow = if ($i -eq $Cursor) { '>' } else { ' ' }
-            $Box   = if ($Picks[$i]) { '[x]' } else { '[ ]' }
-
-            if ($i -eq $Cursor) {
-                $Colour = 'Cyan'
-            }
-            elseif ($Picks[$i]) {
-                $Colour = 'Green'
-            }
-            else {
-                $Colour = 'DarkGray'
-            }
-
-            Write-Host ('   {0}  {1}  {2}' -f $Arrow, $Box, (& $NameOf $Items[$i])) `
-                -ForegroundColor $Colour
-        }
-
-        Write-Host ''
-        if ($Script:RawKeys) { Write-Host "   $($T.PickHint2)" -ForegroundColor DarkGray }
-        Write-Host ''
-        Write-Host "  $($T.PickAll)"  -ForegroundColor White
-        Write-Host "  $($T.PickNone)" -ForegroundColor White
-        Write-Host "  $($T.PickBack)" -ForegroundColor White
-        Write-Host ''
-
-        $Pick = Read-MenuKey
-
-        switch ($Pick) {
-            'UP'    { $Cursor--; if ($Cursor -lt 0) { $Cursor = $Items.Count - 1 } }
-            'DOWN'  { $Cursor++; if ($Cursor -ge $Items.Count) { $Cursor = 0 } }
-            'SPACE' { $Picks[$Cursor] = -not $Picks[$Cursor] }
-            'A'     { for ($i = 0; $i -lt $Picks.Count; $i++) { $Picks[$i] = $true } }
-            'N'     { for ($i = 0; $i -lt $Picks.Count; $i++) { $Picks[$i] = $false } }
-            'ESC'   { $Pick = '0' }
-            'ENTER' { $Pick = '0' }
-            default {
-                if ($Pick -match '^\d+$' -and $Pick -ne '0') {
-                    $Idx = [int]$Pick - 1
-                    if ($Idx -ge 0 -and $Idx -lt $Picks.Count) {
-                        $Picks[$Idx] = -not $Picks[$Idx]
-                    }
-                }
-            }
-        }
-    } while ($Pick -ne '0')
-}
-
-function Get-Detail {
-    param($Items)
-    if ($Items.Count -gt 0) { $T.FoundCount -f $Items.Count } else { $T.NotFound }
-}
-
-function Get-ComponentDetail {
-    param([array]$Items, [array]$Picks)
-
-    if ($Items.Count -eq 0) { return $T.NotFound }
-
-    $Ticked = 0
-    for ($i = 0; $i -lt $Items.Count; $i++) { if ($Picks[$i]) { $Ticked++ } }
-
-    $Text = $T.FoundCount -f $Items.Count
-    if ($Ticked -ne $Items.Count) {
-        $Text = "$Text  " + ($T.SelCount -f $Ticked)
+    switch (Read-MenuKey) {
+        '1' { return 'EN' }
+        '2' { return 'NL' }
+        '3' { return 'FR' }
+        default { return $script:Lang }
     }
-    $Text
 }
 
-# Each component names its items differently, so the picker is told how
-function Get-RowPicker {
-    param([int]$Row)
-
-    switch ($Row) {
-        1 { return @{ Items = $Script:Office;   Picks = $Script:OfficePick;   Header = $T.PickHeader;   NameOf = { param($i) if ($i.Licensed) { "$($i.DisplayName)   $($T.TagLicensed)" } else { $i.DisplayName } } } }
-        2 { return @{ Items = $Script:Copilot;  Picks = $Script:CopilotPick;  Header = $T.PickHeaderCp; NameOf = { param($i) "$($i.Name)  ($($i.Kind))" } } }
-        3 { return @{ Items = $Script:OneDrive; Picks = $Script:OneDrivePick; Header = $T.PickHeaderOd; NameOf = { param($i) $i.Path } } }
-        4 { return @{ Items = $Script:Hp;       Picks = $Script:HpPick;       Header = $T.PickHeaderHp; NameOf = { param($i) $i.DisplayName } } }
-    }
-    return $null
-}
-
-function Open-RowPicker {
-    param([int]$Row)
-
-    $Cfg = Get-RowPicker -Row $Row
-    if (-not $Cfg)                { return }
-    if ($Cfg.Items.Count -eq 0)   { return }
-
-    Select-Items -Items $Cfg.Items -Picks $Cfg.Picks -Header $Cfg.Header -NameOf $Cfg.NameOf
-}
 
 # ------------------------------------------------------------------- Main ---
 
@@ -1253,23 +1204,15 @@ Invoke-Scan
 $Cursor = 0
 
 do {
-    $ItemsSelected = $Sel.Office -or $Sel.Copilot -or $Sel.OneDrive -or $Sel.Hp
-    $AllAvailable  = -not $ItemsSelected
-    $ItemAvailable = -not $Sel.All
-
-    # Keep the cursor on a row that is actually selectable
-    if (-not (Get-RowAvailable -Row $Cursor)) { $Cursor = Move-Cursor -Current $Cursor -Delta 1 }
+    $Rows = @(Get-VisibleRows)
+    if ($Cursor -ge $Rows.Count) { $Cursor = $Rows.Count - 1 }
+    if ($Cursor -lt 0)           { $Cursor = 0 }
 
     Show-Banner
     Write-Host "  $($T.SelectHeader)" -ForegroundColor White
     Write-Host ''
 
-    Show-Row -IsCursor ($Cursor -eq 0) -Checked $Sel.All -Available $AllAvailable -Label $T.OptAll -Detail ''
-    Write-Host '      ------------------------------------------------------' -ForegroundColor DarkGray
-    Show-Row -IsCursor ($Cursor -eq 1) -Checked $Sel.Office   -Available $ItemAvailable -Label $T.OptOffice   -Detail (Get-ComponentDetail -Items $Office   -Picks $Script:OfficePick)
-    Show-Row -IsCursor ($Cursor -eq 2) -Checked $Sel.Copilot  -Available $ItemAvailable -Label $T.OptCopilot  -Detail (Get-ComponentDetail -Items $Copilot  -Picks $Script:CopilotPick)
-    Show-Row -IsCursor ($Cursor -eq 3) -Checked $Sel.OneDrive -Available $ItemAvailable -Label $T.OptOneDrive -Detail (Get-ComponentDetail -Items $OneDrive -Picks $Script:OneDrivePick)
-    Show-Row -IsCursor ($Cursor -eq 4) -Checked $Sel.Hp       -Available $ItemAvailable -Label $T.OptHp       -Detail (Get-ComponentDetail -Items $Hp       -Picks $Script:HpPick)
+    Show-Tree -Rows $Rows -Cursor $Cursor
     Write-Host ''
 
     if ($Script:RawKeys) {
@@ -1278,23 +1221,9 @@ do {
     else {
         Write-Host "   $($T.NavHintKeys)" -ForegroundColor DarkGray
     }
-    Write-Host "   $($T.ViewHint)" -ForegroundColor DarkGray
-
-    if ($Sel.All)           { Write-Host "   $($T.HintAll)"   -ForegroundColor DarkGray }
-    elseif ($ItemsSelected) { Write-Host "   $($T.HintItems)" -ForegroundColor DarkGray }
-
-    foreach ($r in 1..4) {
-        if ((Get-RowChecked -Row $r) -and (Test-RowEmptyTicked -Row $r)) {
-            $Cfg = Get-RowPicker -Row $r
-            $Lbl = switch ($r) { 1 { $T.OptOffice } 2 { $T.OptCopilot } 3 { $T.OptOneDrive } 4 { $T.OptHp } }
-            Write-Host ("   " + ($T.RowEmptyHint -f $Lbl, $Cfg.Items.Count)) -ForegroundColor Yellow
-        }
-    }
     Write-Host ''
 
     Write-Host "  $($T.MenuStart)"  -ForegroundColor White
-    if ($Office.Count -gt 0) { Write-Host "  $($T.MenuPick)"   -ForegroundColor White }
-    if ($Hp.Count     -gt 0) { Write-Host "  $($T.MenuPickHp)" -ForegroundColor White }
     Write-Host "  $($T.MenuRescan)" -ForegroundColor White
     Write-Host "  $($T.MenuLang) - $($T.LangLabel)" -ForegroundColor White
     Write-Host "  $($T.MenuReboot)" -ForegroundColor White
@@ -1302,47 +1231,80 @@ do {
     Write-Host ''
 
     $Choice = Read-MenuKey
+    $Row    = $Rows[$Cursor]
 
     switch ($Choice) {
 
-        'UP'    { $Cursor = Move-Cursor -Current $Cursor -Delta -1 }
-        'DOWN'  { $Cursor = Move-Cursor -Current $Cursor -Delta  1 }
-        'SPACE' { Switch-Row -Row $Cursor }
-        'RIGHT' { Open-RowPicker -Row $Cursor }
-        'V'     { Open-RowPicker -Row $Cursor }
+        'UP'   { $Cursor--; if ($Cursor -lt 0)           { $Cursor = $Rows.Count - 1 } }
+        'DOWN' { $Cursor++; if ($Cursor -ge $Rows.Count) { $Cursor = 0 } }
+
+        'SPACE' {
+            switch ($Row.Type) {
+                'all'  { Switch-All }
+                'comp' { Switch-Comp -Comp $Row.Comp }
+                'item' { Switch-Item -Comp $Row.Comp -Index $Row.Index }
+            }
+        }
+
+        { $_ -in 'RIGHT', 'ENTER', 'V' } {
+            if ($Row.Type -eq 'comp') {
+                $Cfg = Get-Component -Index $Row.Comp
+                if ($Cfg.Items.Count -gt 0) {
+                    if ($Script:Expanded[$Row.Comp]) {
+                        $Cursor++        # already open: step into the group
+                    }
+                    else {
+                        $Script:Expanded[$Row.Comp] = $true
+                    }
+                }
+            }
+        }
+
+        'LEFT' {
+            if ($Row.Type -ne 'all') {
+                $Target = $Row.Comp
+                if ($Row.Type -eq 'item' -or $Script:Expanded[$Target]) {
+                    $Script:Expanded[$Target] = $false
+
+                    # park the cursor back on the group header
+                    $Back = @(Get-VisibleRows)
+                    for ($i = 0; $i -lt $Back.Count; $i++) {
+                        if ($Back[$i].Type -eq 'comp' -and $Back[$i].Comp -eq $Target) { $Cursor = $i; break }
+                    }
+                }
+            }
+        }
 
         # Letter shortcuts, mainly for the typed fallback
-        'A' { Switch-Row -Row 0 }
-        'O' { Switch-Row -Row 1 }
-        'C' { Switch-Row -Row 2 }
-        'D' { Switch-Row -Row 3 }
-        'H' { Switch-Row -Row 4 }
+        'A' { Switch-All }
+        'O' { Switch-Comp -Comp 1 }
+        'C' { Switch-Comp -Comp 2 }
+        'D' { Switch-Comp -Comp 3 }
+        'H' { Switch-Comp -Comp 4 }
 
         '2' {
-            Open-RowPicker -Row 1
-        }
-
-        '3' {
-            Open-RowPicker -Row 4
-        }
-
-        '4' {
             Show-Banner
             Invoke-Scan
         }
 
-        '5' {
+        '3' {
             $Lang = Select-Language
             $T    = $Strings[$Lang]
             $Host.UI.RawUI.WindowTitle = $T.WindowTitle
         }
 
-        { $_ -in '1', 'ENTER' } {
+        '4' {
+            Write-Host ''
+            $Answer = Read-Host $T.ConfirmReboot
+            if ($Answer -match $T.YesPattern) { Invoke-Reboot }
+        }
 
-            $DoOffice   = $Sel.All -or $Sel.Office
-            $DoCopilot  = $Sel.All -or $Sel.Copilot
-            $DoOneDrive = $Sel.All -or $Sel.OneDrive
-            $DoHp       = $Sel.All -or $Sel.Hp
+        '1' {
+
+            $DoOffice   = Get-CompChecked -Comp 1
+            $DoCopilot  = Get-CompChecked -Comp 2
+            $DoOneDrive = Get-CompChecked -Comp 3
+            $DoHp       = Get-CompChecked -Comp 4
 
             if (-not ($DoOffice -or $DoCopilot -or $DoOneDrive -or $DoHp)) {
                 Write-Host ''
@@ -1456,12 +1418,6 @@ do {
             Write-Host ''
 
             Read-Host $T.PressEnter | Out-Null
-        }
-
-        '6' {
-            Write-Host ''
-            $Answer = Read-Host $T.ConfirmReboot
-            if ($Answer -match $T.YesPattern) { Invoke-Reboot }
         }
 
         '0' {

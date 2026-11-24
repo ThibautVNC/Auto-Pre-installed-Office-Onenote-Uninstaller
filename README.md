@@ -52,7 +52,9 @@ Some Copilot components ship as protected system apps. Those cannot be uninstall
 
 ### HP bloatware
 
-Detects the usual OEM payload on HP machines: HP Wolf Security and its console, HP Support Assistant, HP Sure Click / Sure Sense / Sure Run, HP Client Security Manager, HP Connection Optimizer, HP JumpStart, HP Privacy Settings, HP QuickDrop, myHP, and the HP Store apps that all ship under the same publisher prefix.
+Detects the usual OEM payload on HP machines: HP Wolf Security and its console, HP Sure Click / Sure Sense / Sure Run, HP Client Security Manager, HP Connection Optimizer, HP JumpStart, HP Privacy Settings, HP QuickDrop, myHP, HP One Agent, and the HP Store apps that all ship under the same publisher prefix.
+
+**HP Support Assistant is listed but kept.** It delivers driver and BIOS updates, so calling it bloatware is a stretch — it is tagged `[not bloatware - kept]` and ticking the HP group leaves it alone. Tick it by hand if you do want it gone.
 
 Three things worth knowing about how it behaves:
 
@@ -86,45 +88,36 @@ Stops any running `OneDrive.exe`, then runs `OneDriveSetup.exe /uninstall` from 
 
 ## Selection menu
 
+Everything lives in one tree. Arrow right unfolds a group, arrow left folds it back, Space ticks whatever the cursor is on.
+
 ```
    >  [x]  Everything below
-      ------------------------------------------------------
-      [-]  Microsoft 365 / OneNote   (locked)
-      [-]  Copilot                   (locked)
-      [-]  OneDrive                  (locked)
-      [-]  HP bloatware              (locked)
-
-   Up/Down to move, Space to tick
+      ----------------------------------------------------------
+      [x]  >  Microsoft 365 / OneNote  8 found
+      [ ]     Copilot                  not present
+      [x]  >  OneDrive                 1 found
+      [x]  v  HP bloatware             18 found  (17 ticked)
+            [x]  HP Wolf Security
+            [x]  HP Wolf Security - Console
+            [x]  HP Sure Run Module
+            [ ]  HP Support Assistant   [not bloatware - kept]
 ```
 
-Move with the **arrow keys**, tick with **Space**. The digits are reserved for the actions underneath, so nothing overlaps.
-
-The selection is mutually exclusive by design:
-
-- Tick **[1] Everything below** and the three individual entries lock (shown as `[-]`).
-- Tick any individual entry and **[1]** locks instead.
-- Deselect to unlock the other side. No ambiguous state where "All" and a subset are both active.
-
-Each entry shows what the scan actually found, so you know before you start whether there is anything to do.
+The checkbox on a group is a tri-state: `[x]` everything selected, `[~]` a hand-picked subset, `[ ]` nothing. Ticking a group selects every item in it — except items tagged as deliberately kept, which never get swept up in bulk. You can still tick one of those by hand.
 
 | Key | Action |
 |---|---|
-| ↑ / ↓ | Move between components |
-| Space | Tick or untick the highlighted component |
-| `1` or Enter | Start removal (asks for confirmation) |
-| → or `V` | Show what was found on the highlighted row, and tick items individually |
-| `2` | Same, for Office |
-| `3` | Same, for HP |
-| `4` | Rescan |
-| `5` | Language — English / Nederlands / Français |
-| `6` | Reboot now (asks for confirmation) |
+| ↑ / ↓ | Move through the tree |
+| → or Enter | Unfold a group; again to step inside |
+| ← | Fold the group and go back to its header |
+| Space | Tick or untick the row under the cursor |
+| `1` | Start removal (asks for confirmation) |
+| `2` | Rescan |
+| `3` | Language — English / Nederlands / Français |
+| `4` | Reboot now |
 | `0` | Exit |
 
-Every component has an item view, reachable with the **right arrow** (or `V`) on the highlighted row. It lists exactly what the scan found — language SKUs, Appx package names, OneDrive install paths — and lets you untick anything you want to keep. Arrows and Space inside it too, with `A` to tick everything and `N` to clear it.
-
-It opens whenever something was found, including when that is a single item: seeing what is about to be removed matters just as much as choosing between several.
-
-On hosts that cannot read single keypresses — PowerShell ISE, some remoting setups — the tool falls back to typed input automatically and shows letter shortcuts (`A`, `O`, `C`, `D`, `H`) instead.
+On hosts that cannot read single keypresses — PowerShell ISE, some remoting setups — the tool falls back to typed input and shows letter shortcuts (`A`, `O`, `C`, `D`, `H`) for the groups instead.
 
 ---
 
@@ -242,6 +235,14 @@ Anything else is printed with its raw code so you can look it up.
 ---
 
 ## Changelog
+
+### v1.9
+
+- **The menu is now a tree.** Arrow right unfolds a group in place, arrow left folds it, Space ticks the row under the cursor. The separate picker screens and the per-component menu digits are gone.
+- Group checkboxes are tri-state: `[x]` all, `[~]` a hand-picked subset, `[ ]` none.
+- **"Everything below" is a plain bulk action**, not a mode. It no longer locks the individual groups, so the mutual-exclusion rules and their hint lines disappear with it.
+- **HP Support Assistant is no longer treated as bloatware.** It is tagged and left unticked when the HP group is ticked; tick it by hand to remove it anyway.
+- Actions renumbered: `1` start, `2` rescan, `3` language, `4` reboot, `0` exit. Enter unfolds a group instead of starting the run, so a stray Enter on a group cannot launch a removal.
 
 ### v1.8.2
 
