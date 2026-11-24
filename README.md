@@ -54,7 +54,7 @@ Some Copilot components ship as protected system apps. Those cannot be uninstall
 
 Detects the usual OEM payload on HP machines: HP Wolf Security and its console, HP Sure Click / Sure Sense / Sure Run, HP Client Security Manager, HP Connection Optimizer, HP JumpStart, HP Privacy Settings, HP QuickDrop, myHP, HP One Agent, and the HP Store apps that all ship under the same publisher prefix.
 
-**HP Support Assistant is listed but kept.** It delivers driver and BIOS updates, so calling it bloatware is a stretch — it is tagged `[not bloatware - kept]` and ticking the HP group leaves it alone. Tick it by hand if you do want it gone.
+**HP Support Assistant has its own row**, alongside Copilot and OneDrive rather than inside the bloatware group. It delivers driver and BIOS updates, so calling it bloatware is a stretch — ticking *HP bloatware* leaves it alone, and you remove it by ticking its own row.
 
 Three things worth knowing about how it behaves:
 
@@ -91,19 +91,20 @@ Stops any running `OneDrive.exe`, then runs `OneDriveSetup.exe /uninstall` from 
 Everything lives in one tree. Arrow right unfolds a group, arrow left folds it back, Space ticks whatever the cursor is on.
 
 ```
-   >  [x]  Everything below
+   >  [ ]  Everything below
       ----------------------------------------------------------
-      [x]  >  Microsoft 365 / OneNote  8 found
-      [ ]     Copilot                  not present
-      [x]  >  OneDrive                 1 found
-      [x]  v  HP bloatware             18 found  (17 ticked)
+      [ ]  >  Microsoft 365 / OneNote  8 found
+      [ ]  >  Copilot                  1 found
+      [ ]  >  OneDrive                 1 found
+      [x]  v  HP bloatware             17 found  (15 ticked)
             [x]  HP Wolf Security
             [x]  HP Wolf Security - Console
-            [x]  HP Sure Run Module
-            [ ]  HP Support Assistant   [not bloatware - kept]
+            [ ]  HP Sure Run Module
+            [ ]  HP Sure Recover
+      [ ]  >  HP Support Assistant     1 found
 ```
 
-The checkbox on a group is a tri-state: `[x]` everything selected, `[~]` a hand-picked subset, `[ ]` nothing. Ticking a group selects every item in it — except items tagged as deliberately kept, which never get swept up in bulk. You can still tick one of those by hand.
+**A scan selects nothing.** You tick what may go, which keeps the tool honest on a machine you have not inspected yet. The checkbox on a group is a tri-state: `[x]` everything, `[~]` a hand-picked subset, `[ ]` nothing. Ticking a group takes every item in it; unfold it to pick individually.
 
 | Key | Action |
 |---|---|
@@ -235,6 +236,13 @@ Anything else is printed with its raw code so you can look it up.
 ---
 
 ## Changelog
+
+### v1.9.1
+
+- **A scan now selects nothing.** Previously everything found started ticked; you tick what may go instead.
+- **HP Support Assistant is a component of its own**, next to Copilot and OneDrive, rather than a tagged entry inside the HP bloatware group.
+- "Everything below" follows the usual select-all rule: anything short of everything selects everything, and a full selection clears it.
+- The `(n ticked)` suffix only appears for a hand-picked subset, not when a group is empty or complete.
 
 ### v1.9
 

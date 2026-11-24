@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.9
+        Version : 1.9.1
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.9'
+$ScriptVersion = '1.9.1'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -48,7 +48,7 @@ $Strings = @{
         RunDone       = 'Run finished.'
         NavHint       = 'Up/Down move   Right/Enter unfold a group   Left fold   Space ticks'
         TagKeep       = '[not bloatware - kept]'
-        NavHintKeys   = 'Type A / O / C / D / H to tick a group, digits for the menu'
+        NavHintKeys   = 'Type A / O / C / D / H / S to tick a group, digits for the menu'
         Choice        = '  Choice'
         NothingSel    = 'Nothing selected.'
         NothingFound  = 'Nothing found to remove for your selection.'
@@ -88,8 +88,11 @@ $Strings = @{
         SelCount      = '({0} ticked)'
         NoneTicked    = 'Nothing is ticked. Open a list with the right arrow and pick what may go.'
         OptHp         = 'HP bloatware'
+        OptHpsa       = 'HP Support Assistant'
         ScanHp        = 'HP software'
+        ScanHpsa      = 'HP Support Assistant'
         SecHp         = '--- HP bloatware ---'
+        SecHpsa       = '--- HP Support Assistant ---'
         EscSkip       = 'Esc skips this wait'
         TagLicensed   = '[licensed]'
         WarnLicensed  = 'WARNING: a LICENSED Microsoft 365 install is ticked for removal:'
@@ -130,7 +133,7 @@ $Strings = @{
         RunDone       = 'Run afgerond.'
         NavHint       = 'Op/Neer navigeren   Rechts/Enter openklappen   Links dichtklappen   Spatie vinkt aan'
         TagKeep       = '[geen bloatware - blijft]'
-        NavHintKeys   = 'Typ A / O / C / D / H voor een groep, cijfers voor het menu'
+        NavHintKeys   = 'Typ A / O / C / D / H / S voor een groep, cijfers voor het menu'
         Choice        = '  Keuze'
         NothingSel    = 'Niets geselecteerd.'
         NothingFound  = 'Niets gevonden om te verwijderen voor je selectie.'
@@ -170,8 +173,11 @@ $Strings = @{
         SelCount      = '({0} aangevinkt)'
         NoneTicked    = 'Niets aangevinkt. Open een lijst met pijltje rechts en kies wat weg mag.'
         OptHp         = 'HP bloatware'
+        OptHpsa       = 'HP Support Assistant'
         ScanHp        = 'HP software'
+        ScanHpsa      = 'HP Support Assistant'
         SecHp         = '--- HP bloatware ---'
+        SecHpsa       = '--- HP Support Assistant ---'
         EscSkip       = 'Esc slaat dit wachten over'
         TagLicensed   = '[licensed]'
         WarnLicensed  = 'LET OP: een LICENSED Microsoft 365-installatie staat aangevinkt:'
@@ -212,7 +218,7 @@ $Strings = @{
         RunDone       = 'Execution terminee.'
         NavHint       = 'Haut/Bas naviguer   Droite/Entree deplier   Gauche replier   Espace coche'
         TagKeep       = '[pas du bloatware - conserve]'
-        NavHintKeys   = 'Tapez A / O / C / D / H pour un groupe, chiffres pour le menu'
+        NavHintKeys   = 'Tapez A / O / C / D / H / S pour un groupe, chiffres pour le menu'
         Choice        = '  Choix'
         NothingSel    = 'Rien de selectionne.'
         NothingFound  = 'Rien a supprimer pour votre selection.'
@@ -252,8 +258,11 @@ $Strings = @{
         SelCount      = '({0} coche(s))'
         NoneTicked    = 'Rien n est coche. Ouvrez une liste avec la fleche droite et choisissez.'
         OptHp         = 'Bloatware HP'
+        OptHpsa       = 'HP Support Assistant'
         ScanHp        = 'Logiciels HP'
+        ScanHpsa      = 'HP Support Assistant'
         SecHp         = '--- Bloatware HP ---'
+        SecHpsa       = '--- HP Support Assistant ---'
         EscSkip       = 'Echap passe cette attente'
         TagLicensed   = '[sous licence]'
         WarnLicensed  = 'ATTENTION : une installation Microsoft 365 SOUS LICENCE est cochee :'
@@ -274,10 +283,10 @@ $T    = $Strings[$Lang]
 $Host.UI.RawUI.WindowTitle = $T.WindowTitle
 
 # Selection state
-$Sel = @{ All = $false; Office = $false; Copilot = $false; OneDrive = $false; Hp = $false }
+$Sel = @{ All = $false; Office = $false; Copilot = $false; OneDrive = $false; Hp = $false; Hpsa = $false }
 
 # Which component groups are unfolded in the tree
-$Script:Expanded = @{ 1 = $false; 2 = $false; 3 = $false; 4 = $false }
+$Script:Expanded = @{ 1 = $false; 2 = $false; 3 = $false; 4 = $false; 5 = $false }
 
 $Script:Results      = @()
 $Script:RebootNeeded = $false
@@ -337,16 +346,17 @@ function Get-CopilotTargets {
 function Invoke-Scan {
     Write-Host "  $($T.Scanning)" -ForegroundColor White
 
+    foreach ($k in @('All','Office','Copilot','OneDrive','Hp','Hpsa')) { $Sel[$k] = $false }
+
     Write-Host "    - $($T.ScanOffice)" -NoNewline -ForegroundColor DarkGray
     $Script:Office = @(Get-OfficeTargets)
 
     # Every detected Office item is ticked by default; the picker lets you
     # untick individual language SKUs you want to keep.
-    # Everything found starts ticked, licensed installs included: ticking the
-    # row means "all of it". Licensed items are tagged in the item view so they
-    # can be unticked one by one, and they raise a warning before anything runs.
+    # A scan selects nothing: the operator ticks what may go. Ticking a group
+    # then takes everything in it, licensed installs included.
     $Script:OfficePick = @()
-    foreach ($o in $Script:Office) { $Script:OfficePick += $true }
+    foreach ($o in $Script:Office) { $Script:OfficePick += $false }
 
     Write-Host '  ok' -ForegroundColor DarkGray
 
@@ -354,7 +364,7 @@ function Invoke-Scan {
     $Script:Copilot = @(Get-CopilotTargets)
 
     $Script:CopilotPick = @()
-    foreach ($c in $Script:Copilot) { $Script:CopilotPick += $true }
+    foreach ($c in $Script:Copilot) { $Script:CopilotPick += $false }
 
     Write-Host '  ok' -ForegroundColor DarkGray
 
@@ -362,7 +372,15 @@ function Invoke-Scan {
     $Script:OneDrive = @(Get-OneDriveTargets)
 
     $Script:OneDrivePick = @()
-    foreach ($o in $Script:OneDrive) { $Script:OneDrivePick += $true }
+    foreach ($o in $Script:OneDrive) { $Script:OneDrivePick += $false }
+
+    Write-Host '  ok' -ForegroundColor DarkGray
+
+    Write-Host "    - $($T.ScanHpsa)" -NoNewline -ForegroundColor DarkGray
+    $Script:Hpsa = @(Get-HpsaTargets)
+
+    $Script:HpsaPick = @()
+    foreach ($a in $Script:Hpsa) { $Script:HpsaPick += $false }
 
     Write-Host '  ok' -ForegroundColor DarkGray
 
@@ -370,7 +388,7 @@ function Invoke-Scan {
     $Script:Hp = @(Get-HpTargets)
 
     $Script:HpPick = @()
-    foreach ($h in $Script:Hp) { $Script:HpPick += (-not $h.Keep) }
+    foreach ($h in $Script:Hp) { $Script:HpPick += $false }
 
     Write-Host '  ok' -ForegroundColor DarkGray
 }
@@ -388,7 +406,6 @@ function Get-HpTargets {
         '^HP Analytics'
         '^HP Sure (Click|Sense|Run|Recover|Start|Backup)'
         '^HP Client Security Manager'
-        '^HP Support Assistant'
         '^HP JumpStart'
         '^HP Connection Optimizer'
         '^HP Documentation'
@@ -418,9 +435,7 @@ function Get-HpTargets {
                 Quiet       = $_.QuietUninstallString
                 Uninstall   = $_.UninstallString
                 Id          = $null
-                # Support Assistant delivers driver and BIOS updates, so it is
-                # listed but never swept up by ticking the group.
-                Keep        = [bool]($_.DisplayName -match '^HP Support Assistant')
+                Keep        = $false
             }
         }
 
@@ -449,6 +464,27 @@ function Get-HpTargets {
     }
 
     $Found | Sort-Object Keep, @{ Expression = { & $Weight $_.DisplayName } }, DisplayName
+}
+
+function Get-HpsaTargets {
+    # Support Assistant delivers driver and BIOS updates, so it is not
+    # bloatware: it gets its own row instead of riding along with the sweep.
+    Get-ChildItem -Path `
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', `
+        'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall' `
+        -ErrorAction SilentlyContinue |
+        Get-ItemProperty |
+        Where-Object { $_.DisplayName -match '^HP Support Assistant' } |
+        ForEach-Object {
+            [pscustomobject]@{
+                Kind        = 'Registry'
+                DisplayName = $_.DisplayName
+                Quiet       = $_.QuietUninstallString
+                Uninstall   = $_.UninstallString
+                Id          = $null
+                Keep        = $false
+            }
+        }
 }
 
 function Get-OneDriveTargets {
@@ -779,9 +815,13 @@ function Restore-Shell {
 }
 
 function Remove-HpTargets {
-    param([array]$Targets)
+    param(
+        [array]$Targets,
+        [string]$Section = ''
+    )
 
-    Write-Host "  $($T.SecHp)" -ForegroundColor White
+    if (-not $Section) { $Section = $T.SecHp }
+    Write-Host "  $Section" -ForegroundColor White
 
     if ($Targets) {
         Write-Host "  $($T.WarnShell)" -ForegroundColor Yellow
@@ -973,6 +1013,7 @@ function Get-Component {
         2 { return @{ Key='Copilot';  Label=$T.OptCopilot;  Items=$Script:Copilot;  Picks=$Script:CopilotPick } }
         3 { return @{ Key='OneDrive'; Label=$T.OptOneDrive; Items=$Script:OneDrive; Picks=$Script:OneDrivePick } }
         4 { return @{ Key='Hp';       Label=$T.OptHp;       Items=$Script:Hp;       Picks=$Script:HpPick } }
+        5 { return @{ Key='Hpsa';     Label=$T.OptHpsa;     Items=$Script:Hpsa;     Picks=$Script:HpsaPick } }
     }
     return $null
 }
@@ -1064,7 +1105,7 @@ function Switch-Item {
 function Get-AllState {
     # A component with nothing found cannot be "on" in any meaningful sense,
     # so it does not drag the group header into a partial state.
-    $States = @(1..4 |
+    $States = @(1..5 |
         Where-Object { (Get-Component -Index $_).Items.Count -gt 0 } |
         ForEach-Object { Get-CompState -Comp $_ })
 
@@ -1075,8 +1116,8 @@ function Get-AllState {
 }
 
 function Switch-All {
-    $Target = if ((Get-AllState) -eq 'none') { 'on' } else { 'off' }
-    foreach ($c in 1..4) { Switch-Comp -Comp $c -Force $Target }
+    $Target = if ((Get-AllState) -eq 'all') { 'off' } else { 'on' }
+    foreach ($c in 1..5) { Switch-Comp -Comp $c -Force $Target }
 }
 
 function Get-VisibleRows {
@@ -1084,7 +1125,7 @@ function Get-VisibleRows {
     $Rows = @()
     $Rows += @{ Type = 'all' }
 
-    foreach ($c in 1..4) {
+    foreach ($c in 1..5) {
         $Rows += @{ Type = 'comp'; Comp = $c }
 
         if ($Script:Expanded[$c]) {
@@ -1161,7 +1202,10 @@ function Get-ComponentDetail {
 
     $Ticked = Get-TickedCount -Items $Cfg.Items -Picks $Cfg.Picks
     $Text   = $T.FoundCount -f $Cfg.Items.Count
-    if ($Ticked -ne $Cfg.Items.Count) {
+
+    # Only worth saying for a hand-picked subset: the checkbox already shows
+    # none and all.
+    if ($Ticked -gt 0 -and $Ticked -ne $Cfg.Items.Count) {
         $Text = "$Text  " + ($T.SelCount -f $Ticked)
     }
     return $Text
@@ -1281,6 +1325,7 @@ do {
         'C' { Switch-Comp -Comp 2 }
         'D' { Switch-Comp -Comp 3 }
         'H' { Switch-Comp -Comp 4 }
+        'S' { Switch-Comp -Comp 5 }
 
         '2' {
             Show-Banner
@@ -1305,8 +1350,9 @@ do {
             $DoCopilot  = Get-CompChecked -Comp 2
             $DoOneDrive = Get-CompChecked -Comp 3
             $DoHp       = Get-CompChecked -Comp 4
+            $DoHpsa     = Get-CompChecked -Comp 5
 
-            if (-not ($DoOffice -or $DoCopilot -or $DoOneDrive -or $DoHp)) {
+            if (-not ($DoOffice -or $DoCopilot -or $DoOneDrive -or $DoHp -or $DoHpsa)) {
                 Write-Host ''
                 Write-Host "  $($T.NothingSel)" -ForegroundColor Yellow
                 Start-Sleep -Seconds 2
@@ -1317,6 +1363,7 @@ do {
             $CopilotToRemove  = @(Get-Picked -Items $Copilot  -Picks $Script:CopilotPick)
             $OneDriveToRemove = @(Get-Picked -Items $OneDrive -Picks $Script:OneDrivePick)
             $HpToRemove       = @(Get-Picked -Items $Hp       -Picks $Script:HpPick)
+            $HpsaToRemove     = @(Get-Picked -Items $Script:Hpsa -Picks $Script:HpsaPick)
 
             # A selected component with nothing ticked simply contributes
             # nothing; only a zero total is worth stopping for.
@@ -1325,12 +1372,14 @@ do {
             if ($DoCopilot)  { $Planned += $CopilotToRemove.Count }
             if ($DoOneDrive) { $Planned += $OneDriveToRemove.Count }
             if ($DoHp)       { $Planned += $HpToRemove.Count }
+            if ($DoHpsa)     { $Planned += $HpsaToRemove.Count }
 
             if ($Planned -eq 0) {
                 $AnyFound = ($DoOffice   -and $Office.Count   -gt 0) -or
                             ($DoCopilot  -and $Copilot.Count  -gt 0) -or
                             ($DoOneDrive -and $OneDrive.Count -gt 0) -or
-                            ($DoHp       -and $Hp.Count       -gt 0)
+                            ($DoHp       -and $Hp.Count       -gt 0) -or
+                            ($DoHpsa     -and $Script:Hpsa.Count -gt 0)
 
                 Write-Host ''
                 if ($AnyFound) {
@@ -1385,6 +1434,7 @@ do {
             if ($DoCopilot)  { Remove-CopilotTargets  -Targets $CopilotToRemove }
             if ($DoOneDrive) { Remove-OneDriveTargets -Targets $OneDriveToRemove }
             if ($DoHp)       { Remove-HpTargets       -Targets $HpToRemove }
+            if ($DoHpsa)     { Remove-HpTargets       -Targets $HpsaToRemove -Section $T.SecHpsa }
 
             Write-Host '  ------------------------------------------------------------' -ForegroundColor DarkGray
             Write-Host $T.HeaderSummary -ForegroundColor White
