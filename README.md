@@ -54,7 +54,7 @@ Some Copilot components ship as protected system apps. Those cannot be uninstall
 
 Detects the usual OEM payload on HP machines: HP Wolf Security and its console, HP Sure Click / Sure Sense / Sure Run, HP Client Security Manager, HP Connection Optimizer, HP JumpStart, HP Privacy Settings, HP QuickDrop, myHP, HP One Agent, and the HP Store apps that all ship under the same publisher prefix.
 
-**HP Support Assistant has its own row**, alongside Copilot and OneDrive rather than inside the bloatware group. It delivers driver and BIOS updates, so calling it bloatware is a stretch — ticking *HP bloatware* leaves it alone, and you remove it by ticking its own row.
+**HP Support Assistant has its own row**, alongside Copilot and OneDrive rather than inside the bloatware group. It delivers driver and BIOS updates, so calling it bloatware is a stretch — ticking *HP bloatware* leaves it alone, and you remove it by ticking its own row. It ships as a classic install on some machines and as a Store app (`AD2F1837.HPSupportAssistant`) on others; both are detected.
 
 Three things worth knowing about how it behaves:
 
@@ -236,6 +236,10 @@ Anything else is printed with its raw code so you can look it up.
 ---
 
 ## Changelog
+
+### v1.9.2
+
+- **Fixed:** on machines where HP Support Assistant ships as a Store app it still turned up inside *HP bloatware*, while its own row reported "not present". The publisher-prefix sweep now excludes it and its own row covers both the classic install and the Store package.
 
 ### v1.9.1
 

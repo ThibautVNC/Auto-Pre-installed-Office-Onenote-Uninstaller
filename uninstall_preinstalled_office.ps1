@@ -10,12 +10,12 @@
         Interface in English, Dutch and French.
 
     .NOTES
-        Version : 1.9.1
+        Version : 1.9.2
         Credit  : Thibaut VNC
 #>
 
 $ErrorActionPreference = 'Stop'
-$ScriptVersion = '1.9.1'
+$ScriptVersion = '1.9.2'
 
 # ------------------------------------------------------------------ Strings --
 
@@ -439,8 +439,11 @@ function Get-HpTargets {
             }
         }
 
-    # HP Store apps all ship under the same publisher prefix
+    # HP Store apps all ship under the same publisher prefix. Support Assistant
+    # ships that way too, so it has to be excluded here as well as in the
+    # registry sweep - it has a component row of its own.
     $Found += Get-AppxPackage -AllUsers -Name 'AD2F1837.*' -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -notmatch 'SupportAssistant' } |
               ForEach-Object {
                   [pscustomobject]@{
                       Kind        = 'Appx'
@@ -469,7 +472,11 @@ function Get-HpTargets {
 function Get-HpsaTargets {
     # Support Assistant delivers driver and BIOS updates, so it is not
     # bloatware: it gets its own row instead of riding along with the sweep.
-    Get-ChildItem -Path `
+    # It ships as a classic install on some machines and as a Store app on
+    # others, so both are checked.
+    $Found = @()
+
+    $Found += Get-ChildItem -Path `
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', `
         'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall' `
         -ErrorAction SilentlyContinue |
@@ -485,6 +492,21 @@ function Get-HpsaTargets {
                 Keep        = $false
             }
         }
+
+    $Found += Get-AppxPackage -AllUsers -Name 'AD2F1837.*' -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -match 'SupportAssistant' } |
+              ForEach-Object {
+                  [pscustomobject]@{
+                      Kind        = 'Appx'
+                      DisplayName = $_.Name
+                      Quiet       = $null
+                      Uninstall   = $null
+                      Id          = $_.PackageFullName
+                      Keep        = $false
+                  }
+              }
+
+    $Found
 }
 
 function Get-OneDriveTargets {
